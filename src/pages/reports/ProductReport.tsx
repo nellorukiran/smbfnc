@@ -114,6 +114,7 @@ const ProductReport = () => {
                                         <Table>
                                             <TableHeader>
                                                 <TableRow>
+                                                    <TableHead className="w-16">S No</TableHead>
                                                     <TableHead>Product Name</TableHead>
                                                     <TableHead className="text-right">Quantity Sold</TableHead>
                                                     <TableHead className="text-right">Total Sales</TableHead>
@@ -123,13 +124,14 @@ const ProductReport = () => {
                                             <TableBody>
                                                 {data.length === 0 ? (
                                                     <TableRow>
-                                                        <TableCell colSpan={4} className="text-center h-24 text-muted-foreground">
+                                                        <TableCell colSpan={5} className="text-center h-24 text-muted-foreground">
                                                             No product data found.
                                                         </TableCell>
                                                     </TableRow>
                                                 ) : (
                                                     data.map((item, idx) => (
                                                         <TableRow key={idx}>
+                                                            <TableCell className="font-medium">{(page - 1) * limit + idx + 1}</TableCell>
                                                             <TableCell className="font-medium">{item.product_name}</TableCell>
                                                             <TableCell className="text-right">{item.quantity}</TableCell>
                                                             <TableCell className="text-right">₹{Number(item.total_sales_value || 0).toFixed(2)}</TableCell>

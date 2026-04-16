@@ -134,6 +134,7 @@ const CustomerReport = () => {
                                         <Table>
                                             <TableHeader>
                                                 <TableRow>
+                                                    <TableHead className="w-16">S No</TableHead>
                                                     <TableHead>Customer ID</TableHead>
                                                     <TableHead>Name</TableHead>
                                                     <TableHead>Phone</TableHead>
@@ -144,13 +145,14 @@ const CustomerReport = () => {
                                             <TableBody>
                                                 {data.length === 0 ? (
                                                     <TableRow>
-                                                        <TableCell colSpan={5} className="text-center h-24 text-muted-foreground">
+                                                        <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
                                                             No customers found.
                                                         </TableCell>
                                                     </TableRow>
                                                 ) : (
                                                     data.map((item, idx) => (
                                                         <TableRow key={idx}>
+                                                            <TableCell className="font-medium">{(page - 1) * limit + idx + 1}</TableCell>
                                                             <TableCell className="font-mono text-xs">{item.customer_id}</TableCell>
                                                             <TableCell className="font-medium">{item.customer_name}</TableCell>
                                                             <TableCell>{item.phone_number}</TableCell>

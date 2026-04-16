@@ -186,6 +186,7 @@ const CollectionReport = () => {
                                     <Table>
                                         <TableHeader>
                                             <TableRow>
+                                                <TableHead className="w-16">S No</TableHead>
                                                 <TableHead>Paid Date</TableHead>
                                                 <TableHead>Customer ID</TableHead>
                                                 <TableHead>Customer Name</TableHead>
@@ -199,13 +200,14 @@ const CollectionReport = () => {
                                         <TableBody>
                                             {data.length === 0 ? (
                                                 <TableRow>
-                                                    <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
+                                                    <TableCell colSpan={9} className="text-center h-24 text-muted-foreground">
                                                         No data found.
                                                     </TableCell>
                                                 </TableRow>
                                             ) : (
                                                 data.map((item, idx) => (
                                                     <TableRow key={idx}>
+                                                        <TableCell className="font-medium">{(page - 1) * limit + idx + 1}</TableCell>
                                                         <TableCell>{item['Paid Date']}</TableCell>
                                                         <TableCell className="font-mono text-xs">{item['Customer ID']}</TableCell>
                                                         <TableCell className="font-medium">{item['Customer Name'] || 'N/A'}</TableCell>

@@ -112,6 +112,7 @@ const AddressReport = () => {
                                     <Table>
                                         <TableHeader>
                                             <TableRow>
+                                                <TableHead className="w-16">S No</TableHead>
                                                 <TableHead>Address</TableHead>
                                                 <TableHead className="text-right">Customer Count</TableHead>
                                                 <TableHead className="text-right">Total Dues</TableHead>
@@ -121,17 +122,18 @@ const AddressReport = () => {
                                         <TableBody>
                                             {data.length === 0 ? (
                                                 <TableRow>
-                                                    <TableCell colSpan={4} className="text-center h-24 text-muted-foreground">
+                                                    <TableCell colSpan={5} className="text-center h-24 text-muted-foreground">
                                                         No data found.
                                                     </TableCell>
                                                 </TableRow>
                                             ) : (
                                                 data.map((item, idx) => (
                                                     <TableRow key={idx}>
+                                                        <TableCell className="font-medium">{(page - 1) * limit + idx + 1}</TableCell>
                                                         <TableCell className="font-medium">{item.address || 'Unknown'}</TableCell>
                                                         <TableCell className="text-right">{item.customer_count}</TableCell>
-                                                        <TableCell className="text-right">₹{Number(item.total_dues || 0).toFixed(2)}</TableCell>
-                                                        <TableCell className="text-right text-warning font-medium">₹{Number(item.current_due_amount || 0).toFixed(2)}</TableCell>
+                                                        <TableCell className="text-right">Rs.{Number(item.total_dues || 0).toFixed(2)}</TableCell>
+                                                        <TableCell className="text-right text-warning font-medium">Rs.{Number(item.current_due_amount || 0).toFixed(2)}</TableCell>
                                                     </TableRow>
                                                 ))
                                             )}
