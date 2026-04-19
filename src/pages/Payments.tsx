@@ -7,9 +7,17 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Customer, CustomerTransaction } from '@/types/database';
-import { Search, CreditCard, Loader2, IndianRupee, CheckCircle } from 'lucide-react';
+import { Customer, CustomerTransaction, TransactionHistory } from '@/types/database';
+import { Search, CreditCard, Loader2, IndianRupee, CheckCircle, Calendar, User } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { toast } from 'sonner';
 
 const Payments = () => {
@@ -18,6 +26,7 @@ const Payments = () => {
   const [searchId, setSearchId] = useState(searchParams.get('customerId') || '');
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [transaction, setTransaction] = useState<CustomerTransaction | null>(null);
+  const [transactionHistory, setTransactionHistory] = useState<TransactionHistory[]>([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState('');
@@ -53,6 +62,10 @@ const Payments = () => {
         setTransaction(transactionData);
         setPaymentAmount(transactionData.per_month_due?.toString() || '0');
       }
+
+      // Fetch transaction history
+      const { data: historyData } = await api.get(`/customers/${searchId.trim()}/history`);
+      setTransactionHistory(historyData || []);
     } catch (error: any) {
       console.error('Error searching customer:', error);
       if (error.response && error.response.status === 404) {
@@ -156,40 +169,163 @@ const Payments = () => {
 
         {/* Customer Details */}
         {customer && (
-          <Card>
-            <CardHeader className="pb-3">
-              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
-                <div>
-                  <CardTitle className="font-display text-lg">{customer.customer_name}</CardTitle>
-                  <CardDescription>Customer ID: {customer.customer_id}</CardDescription>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <Card className="lg:col-span-2">
+              <CardHeader className="pb-3">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+                  <div>
+                    <CardTitle className="font-display text-lg">{customer.customer_name}</CardTitle>
+                    <CardDescription>Customer ID: {customer.customer_id}</CardDescription>
+                  </div>
+                  <Badge variant={customer.cust_status === 'ACTIVE' ? 'default' : 'secondary'}
+                    className={`w-fit ${customer.cust_status === 'ACTIVE'
+                      ? 'bg-success hover:bg-success/80'
+                      : ''}`}>
+                    {customer.cust_status}
+                  </Badge>
                 </div>
-                <Badge variant={customer.cust_status === 'ACTIVE' ? 'default' : 'secondary'}
-                  className={`w-fit ${customer.cust_status === 'ACTIVE'
-                    ? 'bg-success hover:bg-success/80'
-                    : ''}`}>
-                  {customer.cust_status}
-                </Badge>
-              </div>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="p-3 sm:p-4 bg-muted/50 rounded-lg flex justify-between sm:block items-center">
+                    <p className="text-sm text-muted-foreground">Product</p>
+                    <p className="font-medium text-right sm:text-left">{customer.product_name || 'N/A'}</p>
+                  </div>
+                  <div className="p-3 sm:p-4 bg-muted/50 rounded-lg flex justify-between sm:block items-center">
+                    <p className="text-sm text-muted-foreground">Sale Price</p>
+                    <p className="font-medium text-right sm:text-left">{formatCurrency(Number(customer.sale_price))}</p>
+                  </div>
+                  <div className="p-3 sm:p-4 bg-muted/50 rounded-lg flex justify-between sm:block items-center">
+                    <p className="text-sm text-muted-foreground">Total Due</p>
+                    <p className="font-medium text-warning text-right sm:text-left">{formatCurrency(Number(customer.total_due_amount))}</p>
+                  </div>
+                  <div className="p-3 sm:p-4 bg-muted/50 rounded-lg flex justify-between sm:block items-center">
+                    <p className="text-sm text-muted-foreground">Monthly EMI</p>
+                    <p className="font-medium text-right sm:text-left">{formatCurrency(Number(customer.per_month_due))}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Contact Information Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-display text-lg flex items-center gap-2">
+                  <User className="h-5 w-5 text-primary" />
+                  Contact Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Phone Number</p>
+                    <p className="font-medium">{customer.phone_number || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Address</p>
+                    <p className="font-medium">{customer.address || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Shop Name</p>
+                    <p className="font-medium">{customer.shop_name || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Purchase Date</p>
+                    <p className="font-medium">{customer.purchase_date ? new Date(customer.purchase_date).toLocaleDateString() : 'N/A'}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Transaction History */}
+        {customer && transaction && transactionHistory.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="font-display text-lg flex items-center gap-2">
+                <Calendar className="h-5 w-5 text-primary" />
+                Transaction History
+              </CardTitle>
+              <CardDescription>
+                Complete payment history for {customer.customer_name}
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="p-3 sm:p-4 bg-muted/50 rounded-lg flex justify-between sm:block items-center">
-                  <p className="text-sm text-muted-foreground">Product</p>
-                  <p className="font-medium text-right sm:text-left">{customer.product_name || 'N/A'}</p>
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Transaction ID</TableHead>
+                      <TableHead>Payment Date</TableHead>
+                      <TableHead>Amount Paid</TableHead>
+                      <TableHead>Balance Due</TableHead>
+                      <TableHead>Created By</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {transactionHistory.map((history) => (
+                      <TableRow key={history.id}>
+                        <TableCell className="font-medium">
+                          {history.transaction_id}
+                        </TableCell>
+                        <TableCell>
+                          {history.paid_date ? new Date(history.paid_date).toLocaleDateString() : 'N/A'}
+                        </TableCell>
+                        <TableCell className="text-success font-medium">
+                          {formatCurrency(Number(history.paid_due))}
+                        </TableCell>
+                        <TableCell className={Number(history.balance_due) > 0 ? "text-warning" : "text-success"}>
+                          {formatCurrency(Number(history.balance_due))}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <User className="h-4 w-4 text-muted-foreground" />
+                            {history.created_by || 'SYSTEM'}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              
+              {/* Summary Statistics */}
+              <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="p-4 bg-muted/50 rounded-lg">
+                  <p className="text-sm text-muted-foreground">Total Payments</p>
+                  <p className="text-2xl font-bold text-success">
+                    {transactionHistory.length}
+                  </p>
                 </div>
-                <div className="p-3 sm:p-4 bg-muted/50 rounded-lg flex justify-between sm:block items-center">
-                  <p className="text-sm text-muted-foreground">Sale Price</p>
-                  <p className="font-medium text-right sm:text-left">{formatCurrency(Number(customer.sale_price))}</p>
+                <div className="p-4 bg-muted/50 rounded-lg">
+                  <p className="text-sm text-muted-foreground">Total Paid</p>
+                  <p className="text-2xl font-bold text-success">
+                    {formatCurrency(
+                      transactionHistory.reduce((sum, h) => sum + Number(h.paid_due), 0)
+                    )}
+                  </p>
                 </div>
-                <div className="p-3 sm:p-4 bg-muted/50 rounded-lg flex justify-between sm:block items-center">
-                  <p className="text-sm text-muted-foreground">Total Due</p>
-                  <p className="font-medium text-warning text-right sm:text-left">{formatCurrency(Number(customer.total_due_amount))}</p>
-                </div>
-                <div className="p-3 sm:p-4 bg-muted/50 rounded-lg flex justify-between sm:block items-center">
-                  <p className="text-sm text-muted-foreground">Monthly EMI</p>
-                  <p className="font-medium text-right sm:text-left">{formatCurrency(Number(customer.per_month_due))}</p>
+                <div className="p-4 bg-muted/50 rounded-lg">
+                  <p className="text-sm text-muted-foreground">Current Balance</p>
+                  <p className="text-2xl font-bold text-warning">
+                    {formatCurrency(Number(transaction?.total_due_amount || 0))}
+                  </p>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* No Transaction History */}
+        {customer && transactionHistory.length === 0 && (
+          <Card className="bg-muted/30">
+            <CardContent className="py-8 text-center">
+              <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="font-display text-xl font-bold">No Transaction History</h3>
+              <p className="text-muted-foreground mt-2">
+                No payment records found for this customer yet.
+              </p>
             </CardContent>
           </Card>
         )}

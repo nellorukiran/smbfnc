@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../db'); // Fixed import
+const { authMiddleware, adminOnly, logCrudOperation } = require('../middleware/adminAuth');
 
-// GET /api/customers - Get All Customers with Pagination and Sorting
-router.get('/', async (req, res) => {
+// GET /api/customers - Get All Customers with Pagination and Sorting (Read access for authenticated users)
+router.get('/', authMiddleware, async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
@@ -103,12 +104,16 @@ router.get('/:id/transaction-details', async (req, res) => {
 
         if (rows.length > 0) {
             const txn = rows[0];
-            // Ensure numeric values
-            txn.total_due_amount = parseFloat(txn.total_due_amount) || 0;
-            txn.per_month_due = parseFloat(txn.per_month_due) || 0;
-            txn.penalty = parseFloat(txn.penalty) || 0;
-            txn.next_due_amt = parseFloat(txn.next_due_amt) || txn.next_due_amount || 0; // handle alias matching
-            return res.json(txn);
+            // Map database fields to frontend expected names and ensure numeric values
+            const mappedTxn = {
+                ...txn,
+                total_due_amount: parseFloat(txn.total_due_amt) || 0,
+                per_month_due: parseFloat(txn.per_month_due) || 0,
+                penalty: parseFloat(txn.penalty) || 0,
+                next_due_amt: parseFloat(txn.next_due_amt) || 0,
+                total_dues: parseInt(txn.total_dues) || 0
+            };
+            return res.json(mappedTxn);
         }
 
         // Fallback: If no transaction record, check customer details and construct one
@@ -160,8 +165,8 @@ router.get('/:id/history', async (req, res) => {
     }
 });
 
-// POST /api/customers - Create new customer
-router.post('/', async (req, res) => {
+// POST /api/customers - Create new customer (Admin only)
+router.post('/', adminOnly, logCrudOperation('create', 'customer'), async (req, res) => {
     try {
         const {
             customer_id,
@@ -243,8 +248,8 @@ router.post('/', async (req, res) => {
     }
 });
 
-// PUT /api/customers/:id - Update customer
-router.put('/:id', async (req, res) => {
+// PUT /api/customers/:id - Update customer (Admin only)
+router.put('/:id', adminOnly, logCrudOperation('update', 'customer'), async (req, res) => {
     const { id } = req.params;
     const {
         customer_name,
@@ -298,8 +303,8 @@ router.put('/:id', async (req, res) => {
     }
 });
 
-// DELETE /api/customers/:id
-router.delete('/:id', async (req, res) => {
+// DELETE /api/customers/:id (Admin only)
+router.delete('/:id', adminOnly, logCrudOperation('delete', 'customer'), async (req, res) => {
     const { id } = req.params;
     try {
         await pool.query('DELETE FROM smb_customer_details WHERE customer_id = ?', [id]);

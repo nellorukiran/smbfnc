@@ -150,20 +150,212 @@
     @apply bg-muted-foreground/40;
   }
 
-  /* Fix for date input calendar icon in dark mode */
+  /* Enhanced Date Input Theme Styling */
+  input[type="date"] {
+    background-color: hsl(var(--input)) !important;
+    border: 1px solid hsl(var(--border)) !important;
+    color: hsl(var(--foreground)) !important;
+    border-radius: 0.375rem !important;
+    padding: 0.5rem 0.75rem !important;
+    font-family: 'Inter', system-ui, sans-serif !important;
+    font-size: 0.875rem !important;
+    font-weight: 400 !important;
+    transition: all 0.2s ease !important;
+    outline: none !important;
+    box-shadow: none !important;
+  }
+
+  input[type="date"]:hover {
+    border-color: hsl(var(--primary)) !important;
+  }
+
+  input[type="date"]:focus {
+    border-color: hsl(var(--primary)) !important;
+    box-shadow: 0 0 0 2px hsl(var(--ring) / 0.2) !important;
+  }
+
+  input[type="date"]:disabled {
+    background-color: hsl(var(--muted)) !important;
+    color: hsl(var(--muted-foreground)) !important;
+    opacity: 0.5 !important;
+    cursor: not-allowed !important;
+  }
+
+  /* Calendar picker icon styling */
   input[type="date"]::-webkit-calendar-picker-indicator {
-    filter: invert(1);
-    opacity: 0.6;
-    cursor: pointer;
-    transition: opacity 0.2s;
+    filter: invert(1) !important;
+    opacity: 0.7 !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    border-radius: 0.25rem !important;
+    background-color: transparent !important;
   }
 
   input[type="date"]::-webkit-calendar-picker-indicator:hover {
-    opacity: 1;
+    opacity: 1 !important;
+    background-color: hsl(var(--accent) / 0.1) !important;
   }
 
+  input[type="date"]::-webkit-inner-spin-button {
+    display: none !important;
+  }
+
+  input[type="date"]::-webkit-clear-button {
+    display: none !important;
+  }
+
+  /* Light mode adjustments */
   .light input[type="date"]::-webkit-calendar-picker-indicator {
-    filter: invert(0);
+    filter: invert(0) !important;
+  }
+
+  /* Firefox date input styling */
+  input[type="date"]::-moz-calendar-picker-indicator {
+    filter: invert(1) !important;
+    opacity: 0.7 !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    border-radius: 0.25rem !important;
+  }
+
+  input[type="date"]::-moz-calendar-picker-indicator:hover {
+    opacity: 1 !important;
+    background-color: hsl(var(--accent) / 0.1) !important;
+  }
+
+  .light input[type="date"]::-moz-calendar-picker-indicator {
+    filter: invert(0) !important;
+  }
+
+  /* Enhanced Date Picker Theme Styles */
+  .rdp {
+    --rdp-background: hsl(var(--card));
+    --rdp-foreground: hsl(var(--foreground));
+    --rdp-border: hsl(var(--border));
+    --rdp-primary: hsl(var(--primary));
+    --rdp-primary-foreground: hsl(var(--primary-foreground));
+    --rdp-accent: hsl(var(--accent));
+    --rdp-accent-foreground: hsl(var(--accent-foreground));
+    --rdp-muted: hsl(var(--muted));
+    --rdp-muted-foreground: hsl(var(--muted-foreground));
+    --rdp-warning: hsl(var(--warning));
+    --rdp-destructive: hsl(var(--destructive));
+  }
+
+  /* Calendar container */
+  .rdp-calendar {
+    background-color: var(--rdp-background) !important;
+    border: 1px solid var(--rdp-border) !important;
+    border-radius: 0.75rem !important;
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1) !important;
+    font-family: 'Inter', system-ui, sans-serif !important;
+  }
+
+  /* Month and year caption */
+  .rdp-caption {
+    color: var(--rdp-foreground) !important;
+    font-weight: 600 !important;
+    font-family: 'Inter', system-ui, sans-serif !important;
+  }
+
+  /* Navigation buttons */
+  .rdp-nav_button {
+    background-color: var(--rdp-background) !important;
+    border: 1px solid var(--rdp-border) !important;
+    color: var(--rdp-foreground) !important;
+    border-radius: 0.375rem !important;
+    transition: all 0.2s ease !important;
+  }
+
+  .rdp-nav_button:hover {
+    background-color: var(--rdp-accent) !important;
+    color: var(--rdp-accent-foreground) !important;
+  }
+
+  /* Weekday headers */
+  .rdp-head_cell {
+    color: var(--rdp-muted-foreground) !important;
+    font-weight: 500 !important;
+    font-size: 0.8rem !important;
+    font-family: 'Inter', system-ui, sans-serif !important;
+  }
+
+  /* Day cells */
+  .rdp-day {
+    background-color: transparent !important;
+    color: var(--rdp-foreground) !important;
+    border-radius: 0.375rem !important;
+    font-family: 'Inter', system-ui, sans-serif !important;
+    font-weight: 400 !important;
+    transition: all 0.2s ease !important;
+  }
+
+  .rdp-day:hover:not(.rdp-selected):not(.rdp-disabled) {
+    background-color: var(--rdp-accent) !important;
+    color: var(--rdp-accent-foreground) !important;
+  }
+
+  /* Selected day */
+  .rdp-selected {
+    background-color: var(--rdp-primary) !important;
+    color: var(--rdp-primary-foreground) !important;
+    font-weight: 600 !important;
+    border: 1px solid hsl(var(--primary) / 0.2) !important;
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05) !important;
+  }
+
+  .rdp-selected:hover {
+    background-color: var(--rdp-primary) !important;
+    color: var(--rdp-primary-foreground) !important;
+  }
+
+  /* Today */
+  .rdp-today {
+    background-color: var(--rdp-accent) !important;
+    color: var(--rdp-accent-foreground) !important;
+    font-weight: 600 !important;
+    border: 1px solid var(--rdp-border) !important;
+  }
+
+  /* Outside days */
+  .rdp-outside {
+    color: var(--rdp-muted-foreground) !important;
+    opacity: 0.5 !important;
+  }
+
+  /* Disabled days */
+  .rdp-disabled {
+    color: var(--rdp-muted-foreground) !important;
+    opacity: 0.5 !important;
+    cursor: not-allowed !important;
+  }
+
+  /* Weekend highlighting */
+  .rdp-day.rdp-weekend {
+    background-color: hsl(var(--warning) / 0.1) !important;
+    color: var(--rdp-warning) !important;
+    font-weight: 500 !important;
+  }
+
+  /* Holiday highlighting */
+  .rdp-day.rdp-holiday {
+    background-color: hsl(var(--destructive) / 0.1) !important;
+    color: var(--rdp-destructive) !important;
+    font-weight: 500 !important;
+  }
+
+  /* Weekend selected */
+  .rdp-day.rdp-weekend.rdp-selected {
+    background-color: var(--rdp-warning) !important;
+    color: hsl(var(--warning-foreground)) !important;
+    border: 1px solid hsl(var(--warning) / 0.3) !important;
+  }
+
+  /* Holiday selected */
+  .rdp-day.rdp-holiday.rdp-selected {
+    background-color: var(--rdp-destructive) !important;
+    color: hsl(var(--destructive-foreground)) !important;
+    border: 1px solid hsl(var(--destructive) / 0.3) !important;
   }
 }
 

@@ -73,12 +73,15 @@ export interface SmbUser {
   user_id: string | null;
   user_name: string;
   role: 'ROLE_ADMIN' | 'ROLE_USER';
+  user_type?: string;
   approval_status: 'PENDING' | 'APPROVED' | 'REJECTED';
   email: string | null;
   first_name?: string;
   last_name?: string;
   phone_number: string | null;
   enabled: boolean;
+  approval_date?: string;
+  approved_by?: string;
   created_at: string;
   updated_at: string;
 }

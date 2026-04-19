@@ -16,6 +16,8 @@ const loginSchema = z.object({
 });
 
 const signupSchema = z.object({
+  firstName: z.string().min(2, 'First name must be at least 2 characters').regex(/^[a-zA-Z\s]+$/, 'First name can only contain alphabetic characters'),
+  lastName: z.string().min(2, 'Last name must be at least 2 characters').regex(/^[a-zA-Z\s]+$/, 'Last name can only contain alphabetic characters'),
   userName: z.string().min(3, 'Username must be at least 3 characters'),
   email: z.string().email('Please enter a valid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
@@ -35,6 +37,8 @@ const Auth = () => {
   const [loginPassword, setLoginPassword] = useState('');
 
   // Signup form state
+  const [signupFirstName, setSignupFirstName] = useState('');
+  const [signupLastName, setSignupLastName] = useState('');
   const [signupUserName, setSignupUserName] = useState('');
   const [signupEmail, setSignupEmail] = useState('');
   const [signupPassword, setSignupPassword] = useState('');
@@ -75,6 +79,8 @@ const Auth = () => {
 
     try {
       signupSchema.parse({
+        firstName: signupFirstName,
+        lastName: signupLastName,
         userName: signupUserName,
         email: signupEmail,
         password: signupPassword,
@@ -88,7 +94,7 @@ const Auth = () => {
     }
 
     setIsLoading(true);
-    const { error } = await signUp(signupEmail, signupPassword, signupUserName);
+    const { error } = await signUp(signupEmail, signupPassword, signupUserName, signupFirstName, signupLastName);
 
     if (error) {
       if (error.message.includes('already registered')) {
@@ -176,6 +182,30 @@ const Auth = () => {
 
             <TabsContent value="signup">
               <form onSubmit={handleSignup} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-firstname" className="text-sm font-medium">First Name</Label>
+                    <Input
+                      id="signup-firstname"
+                      type="text"
+                      placeholder="Enter First Name"
+                      value={signupFirstName}
+                      onChange={(e) => setSignupFirstName(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-lastname" className="text-sm font-medium">Last Name</Label>
+                    <Input
+                      id="signup-lastname"
+                      type="text"
+                      placeholder="Enter Last Name"
+                      value={signupLastName}
+                      onChange={(e) => setSignupLastName(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="signup-username" className="text-sm font-medium">Username</Label>
                   <div className="relative">

@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../db');
+const { adminOnly, logCrudOperation } = require('../middleware/adminAuth');
 
-// POST /api/payments
-router.post('/', async (req, res) => {
+// POST /api/payments - Record payment (Admin only)
+router.post('/', adminOnly, logCrudOperation('create', 'payment'), async (req, res) => {
     const { customerId, amount, paymentDate, createdBy, penalty } = req.body;
     let paidAmount = parseFloat(amount);
     let newPenalty = parseFloat(penalty) || 0;
@@ -12,12 +13,21 @@ router.post('/', async (req, res) => {
         return res.status(400).json({ message: 'Missing required fields: customerId, amount, paymentDate' });
     }
 
+    // Validation Rules
+    if (paidAmount <= 0) {
+        return res.status(400).json({ message: 'Payment amount must be greater than 0' });
+    }
+
+    if (newPenalty < 0) {
+        return res.status(400).json({ message: 'Penalty cannot be negative' });
+    }
+
     const connection = await pool.getConnection();
 
     try {
         await connection.beginTransaction();
 
-        // 1. Fetch current transaction/loan details
+        // 1. Fetch current transaction/loan details with row lock
         const [txnRows] = await connection.query(
             'SELECT * FROM smb_customer_transactions WHERE customer_id = ? FOR UPDATE',
             [customerId]
@@ -30,130 +40,108 @@ router.post('/', async (req, res) => {
         const transaction = txnRows[0];
 
         // Parse DB values
-        let totalDueAmount = parseFloat(transaction.total_due_amt) || 0; // Principal
+        let totalDueAmount = parseFloat(transaction.total_due_amt) || 0;
         let nextDueAmount = parseFloat(transaction.next_due_amt) || 0;
         let perMonthDue = parseFloat(transaction.per_month_due) || 0;
-        let oldPenalty = parseFloat(transaction.penalty) || 0;
+        let currentPenalty = parseFloat(transaction.penalty) || 0;
         let totalDuesCount = parseInt(transaction.total_dues) || 0;
         let currentStatus = transaction.cust_status;
+        console.log("totalDueAmount-1: "+totalDueAmount);
+         console.log("nextDueAmount-2: "+nextDueAmount);
+        // Validation: Prevent negative balances
+        if (totalDueAmount < 0) {
+            throw new Error('Invalid state: Total due amount cannot be negative');
+        }
 
-        // --- Logic Parity with Spring Boot ---
+        // Payment Update Workflow
+        let remainingPaidAmount = paidAmount;
+        let penaltyPaid = 0;
 
-        // Scenario A: New Penalty Provided (or just handling penalty update)
+        // 1. Penalty Handling: Deduct penalty first
         if (newPenalty > 0) {
-            // Note: In Java, if newPen > 0, it replaces oldPen logic somewhat or is treated as dynamic
-            // But strictly following Java logic: if (newPen > 0 && customerTransaction.getPenalty() == 0) ... 
-            // Actually Java logic was complex: 
-            // if (newPen > 0 && oldPen == 0) { ... } else { ... }
-            // Let's implement a robust version that covers the intent:
-            // 1. Prioritize paying off existing/new penalty.
-            // 2. Reduce principal.
-
-            // However, the Java code implies:
-            // if (paid > newPen) { dueAmt = dueAmt - paid; ... }
-            // This treats 'paid' as fully reducing principal?! This is strange if 'newPen' is a fee.
-            // Let's assume standard accounting:
-
-            // Standard Logic: 
-            // 1. If there is a penalty (old or new), pay it first.
-            // 2. Remaining amount goes to principal.
-
-            // If newPenalty is passed, we effectively 'charge' it first.
-            // But strictly following Java logic structure for safety:
-            if (newPenalty > 0 && oldPenalty === 0) {
-                if (paidAmount > newPenalty) {
-                    totalDueAmount = totalDueAmount - paidAmount; // Reduced by full amount?
-                    // Recalc next due
-                    if (nextDueAmount > totalDueAmount) {
-                        nextDueAmount = totalDueAmount + newPenalty;
-                        perMonthDue = totalDueAmount;
-                    } else {
-                        nextDueAmount = perMonthDue + newPenalty;
-                    }
-                    oldPenalty = newPenalty; // Set new penalty
-                } else if (paidAmount < newPenalty) {
-                    oldPenalty = newPenalty;
-                    nextDueAmount = perMonthDue + oldPenalty;
-                }
+             console.log("totalDueAmount-3: "+totalDueAmount);
+             console.log("remainingPaidAmount-3.1: "+remainingPaidAmount);
+            // New penalty is being charged
+            if (remainingPaidAmount >= newPenalty) {
+                remainingPaidAmount -= newPenalty;
+                console.log("remainingPaidAmount-3.2: "+remainingPaidAmount);
+                penaltyPaid = newPenalty;
+                console.log("penaltyPaid-3.3: "+penaltyPaid);
+                currentPenalty = 0; // Penalty cleared
             } else {
-                // Else block (oldPen > 0 OR newPen == 0)
-                if (paidAmount >= oldPenalty) {
-                    let dueBalance = paidAmount - oldPenalty;
-                    totalDueAmount = totalDueAmount - dueBalance;
-                    oldPenalty = 0; // Cleared
-
-                    if (nextDueAmount > totalDueAmount) {
-                        nextDueAmount = totalDueAmount;
-                        perMonthDue = totalDueAmount;
-                    } else {
-                        nextDueAmount = perMonthDue;
-                    }
-                } else { // paidAmount < oldPenalty
-                    oldPenalty = oldPenalty - paidAmount; // Reduce penalty
-                    nextDueAmount = perMonthDue + oldPenalty;
-                }
+                 console.log("totalDueAmount-4: "+totalDueAmount);
+                // Paid amount is less than penalty, only penalty is reduced
+                currentPenalty = newPenalty - remainingPaidAmount;
+                penaltyPaid = remainingPaidAmount;
+                remainingPaidAmount = 0; // No amount left for principal
             }
-        }
-        else {
-            // Standard case where newPenalty is 0 (or not provided)
-            // We treat this same as "Else" block in Java
-            if (paidAmount >= oldPenalty) {
-                let dueBalance = paidAmount - oldPenalty;
-                totalDueAmount = Math.max(0, totalDueAmount - dueBalance);
-                oldPenalty = 0;
-
-                if (nextDueAmount > totalDueAmount) {
-                    nextDueAmount = totalDueAmount;
-                    perMonthDue = totalDueAmount;
-                } else {
-                    nextDueAmount = perMonthDue;
-                }
+        } else if (currentPenalty > 0) {
+             console.log("totalDueAmount-5: "+totalDueAmount);
+            // Pay existing penalty first
+            if (remainingPaidAmount >= currentPenalty) {
+                remainingPaidAmount -= currentPenalty;
+                penaltyPaid = currentPenalty;
+                currentPenalty = 0; // Penalty cleared
             } else {
-                oldPenalty = oldPenalty - paidAmount;
-                nextDueAmount = perMonthDue + oldPenalty;
+                 console.log("totalDueAmount-6: "+totalDueAmount);
+                // Paid amount is less than penalty, only penalty is reduced
+                currentPenalty -= remainingPaidAmount;
+                penaltyPaid = remainingPaidAmount;
+                remainingPaidAmount = 0; // No amount left for principal
             }
         }
 
-        // Dues Count Decrement
-        if (totalDueAmount > 0 && totalDuesCount > 1) {
-            // Note: Java code logic: if(dueAmt > 0 && customerTransaction.getTotalDues() > 1){ totalDues-- }
-            // Only decrement if we are still active but made a payment? 
-            // This assumes 1 payment = 1 EMI?
-            // Let's trust the logic.
-            totalDuesCount--;
+        // 2. Apply remaining amount to reduce total_due_amt
+        if (remainingPaidAmount > 0) {
+             console.log("remainingPaidAmount-7: "+remainingPaidAmount);
+        
+            totalDueAmount = Math.max(0, totalDueAmount - remainingPaidAmount);
         }
 
-        // Status Update
-        // Java: setCustStatus("U") always?
-        // But if balance is 0, it should be closed.
-        // The Java code sets "U" (Updated) but typically logic should close if 0.
-        // Let's keep it robust:
-        let newStatus = totalDueAmount <= 0.5 ? 'CLOSED' : 'UPDATED';
-        if (newStatus === 'CLOSED') {
+        // 3. Due Count Handling: Each successful payment reduces total_due by 1
+        if (paidAmount > 0 && totalDuesCount > 0) {
+            totalDuesCount = Math.max(0, totalDuesCount - 1);
+            console.log("totalDuesCount-9: "+totalDuesCount);
+        }
+
+        // 4. Status Update Logic
+        let newStatus;
+        if (totalDueAmount <= 0.5) {
+            console.log("remainingPaidAmount-10: "+remainingPaidAmount);
+            newStatus = 'CLOSED';
             totalDueAmount = 0;
-            oldPenalty = 0;
+            currentPenalty = 0;
             nextDueAmount = 0;
             totalDuesCount = 0;
+        } else {
+             console.log("remainingPaidAmount-11: "+remainingPaidAmount);
+             console.log("totalDueAmount-12: "+totalDueAmount);
+            newStatus = 'UPDATED';
+            // Update next due amount for active loans
+            if (totalDueAmount > 0) {
+                nextDueAmount = Math.min(totalDueAmount, perMonthDue);
+                console.log("nextDueAmount-13: "+nextDueAmount);
+            }
         }
 
-        // 2. Insert into smb_transactions_history
-        const transactionId = `APP${customerId}${Date.now()}${Math.floor(Math.random() * 1000)}`;
+        // 5. Transaction History: Insert record for every successful payment
+        const transactionId = `PAY${customerId}${Date.now()}${Math.floor(Math.random() * 1000)}`;
         await connection.query(
             `INSERT INTO smb_transactions_history 
             (transaction_id, customer_id, paid_due, paid_date, balance_due, created_by, created_date, transaction_date) 
-            VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())`,
-            [transactionId, customerId, paidAmount, paymentDate, totalDueAmount, createdBy]
+            VALUES (?, ?, ?, ?, ?, ?, NOW(), ?)`,
+            [transactionId, customerId, paidAmount, paymentDate, totalDueAmount, createdBy, paymentDate]
         );
 
-        // 3. Update smb_customer_transactions
+        // 6. Update smb_customer_transactions
         await connection.query(
             `UPDATE smb_customer_transactions 
             SET total_due_amt = ?, next_due_amt = ?, penalty = ?, per_month_due = ?, total_dues = ?, cust_status = ?, updated_by = ?, last_updated_date = NOW()
             WHERE customer_id = ?`,
-            [totalDueAmount, nextDueAmount, oldPenalty, perMonthDue, totalDuesCount, newStatus, createdBy, customerId]
+            [totalDueAmount, nextDueAmount, currentPenalty, perMonthDue, totalDuesCount, newStatus, createdBy, customerId]
         );
 
-        // 4. Update smb_customer_details
+        // 7. Update smb_customer_details
         await connection.query(
             `UPDATE smb_customer_details 
             SET tot_due_amt = ?, due_amt = ?, total_dues = ?, cust_status = ?, updated_by = ?, last_updated_date = NOW()
@@ -164,12 +152,16 @@ router.post('/', async (req, res) => {
         await connection.commit();
 
         res.json({
-            message: 'Payment updated successfully',
+            message: 'Payment processed successfully',
             data: {
                 customerId,
                 paidAmount,
-                penalty: oldPenalty,
-                remainingAmount: totalDueAmount
+                penaltyPaid,
+                penaltyRemaining: currentPenalty,
+                remainingBalance: totalDueAmount,
+                totalDuesRemaining: totalDuesCount,
+                status: newStatus,
+                transactionId
             }
         });
 

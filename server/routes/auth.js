@@ -6,7 +6,7 @@ const db = require('../db');
 
 // Register
 router.post('/register', async (req, res) => {
-    const { user_name, password, email, phone_number, role = 'ROLE_USER' } = req.body;
+    const { user_name, password, email, phone_number, first_name, last_name, role = 'ROLE_USER' } = req.body;
 
     try {
         // Check if user exists
@@ -25,8 +25,8 @@ router.post('/register', async (req, res) => {
 
         // Insert user
         const [result] = await db.execute(
-            'INSERT INTO smb_user (user_name, password, email, phone_number, roles, approval_status, created_date, updated_date) VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())',
-            [user_name, hashedPassword, email, phone_number, role, 'PENDING']
+            'INSERT INTO smb_user (user_name, password, email, phone_number, first_name, last_name, roles, approval_status, created_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())',
+            [user_name, hashedPassword, email, phone_number, first_name, last_name, role, 'PENDING']
         );
 
         res.status(201).json({ message: 'User registered successfully. Please wait for admin approval.' });

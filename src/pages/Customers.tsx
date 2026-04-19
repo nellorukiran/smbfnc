@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '@/services/api';
 import DashboardLayout from '@/components/layout/DashboardLayout';
+import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -37,6 +38,7 @@ import {
 import { toast } from 'sonner';
 
 const Customers = () => {
+  const { user: currentUser, isAdmin } = useAuth();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -161,12 +163,18 @@ const Customers = () => {
               Manage your customer records and loan information.
             </p>
           </div>
-          <Button asChild className="gradient-primary hover:opacity-90">
-            <Link to="/customers/new">
-              <Plus className="mr-2 h-4 w-4" />
-              Add Customer
-            </Link>
-          </Button>
+          {isAdmin ? (
+            <Button asChild className="gradient-primary hover:opacity-90">
+              <Link to="/customers/new">
+                <Plus className="mr-2 h-4 w-4" />
+                Add Customer
+              </Link>
+            </Button>
+          ) : (
+            <div className="text-sm text-muted-foreground">
+              You do not have permission to add customers.
+            </div>
+          )}
         </div>
 
         {/* Filters */}
@@ -325,28 +333,34 @@ const Customers = () => {
                                     View Details
                                   </Link>
                                 </DropdownMenuItem>
-                                <DropdownMenuItem asChild>
-                                  <Link to={`/customers/${customer.customer_id}/edit`}>
-                                    <Edit className="mr-2 h-4 w-4" />
-                                    Edit
-                                  </Link>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() => handleOpenPaymentModal(customer)}
-                                // asChild // remove asChild since we are using onClick now
-                                >
-                                  {/* <Link to={`/payments?customerId=${customer.customer_id}`}> */}
-                                  <CreditCard className="mr-2 h-4 w-4" />
-                                  Record Payment
-                                  {/* </Link> */}
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  className="text-destructive"
-                                  onClick={() => handleDelete(customer.customer_id)}
-                                >
-                                  <Trash2 className="mr-2 h-4 w-4" />
-                                  Delete
-                                </DropdownMenuItem>
+                                {isAdmin && (
+                                  <DropdownMenuItem asChild>
+                                    <Link to={`/customers/${customer.customer_id}/edit`}>
+                                      <Edit className="mr-2 h-4 w-4" />
+                                      Edit
+                                    </Link>
+                                  </DropdownMenuItem>
+                                )}
+                                {isAdmin && (
+                                  <DropdownMenuItem
+                                    onClick={() => handleOpenPaymentModal(customer)}
+                                  // asChild // remove asChild since we are using onClick now
+                                  >
+                                    {/* <Link to={`/payments?customerId=${customer.customer_id}`}> */}
+                                    <CreditCard className="mr-2 h-4 w-4" />
+                                    Record Payment
+                                    {/* </Link> */}
+                                  </DropdownMenuItem>
+                                )}
+                                {isAdmin && (
+                                  <DropdownMenuItem
+                                    className="text-destructive"
+                                    onClick={() => handleDelete(customer.customer_id)}
+                                  >
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Delete
+                                  </DropdownMenuItem>
+                                )}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </TableCell>
@@ -405,15 +419,24 @@ const Customers = () => {
                               <Eye className="h-4 w-4 mr-1" /> View
                             </Link>
                           </Button>
-                          <Button
-                            size="sm"
-                            className="flex-1"
-                            onClick={() => handleOpenPaymentModal(customer)}
-                          >
-                            {/* <Link to={`/payments?customerId=${customer.customer_id}`}> */}
-                            <CreditCard className="h-4 w-4 mr-1" /> Pay
-                            {/* </Link> */}
-                          </Button>
+                          {isAdmin && (
+                            <Button
+                              size="sm"
+                              className="flex-1"
+                              onClick={() => handleOpenPaymentModal(customer)}
+                            >
+                              {/* <Link to={`/payments?customerId=${customer.customer_id}`}> */}
+                              <CreditCard className="h-4 w-4 mr-1" /> Record Payment
+                              {/* </Link> */}
+                            </Button>
+                          )}
+                          {isAdmin && (
+                            <Button asChild size="sm" variant="outline" className="flex-1">
+                              <Link to={`/customers/${customer.customer_id}/edit`}>
+                                <Edit className="h-4 w-4 mr-1" /> Edit
+                              </Link>
+                            </Button>
+                          )}
                         </div>
                       </CardContent>
                     </Card>

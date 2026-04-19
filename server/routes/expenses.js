@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../db');
-const auth = require('../middleware/auth');
+const { authMiddleware, adminOnly, logCrudOperation } = require('../middleware/adminAuth');
 
-// Get all expenses with pagination and filtering
-router.get('/', auth, async (req, res) => {
+// Get all expenses with pagination and filtering (Admin only)
+router.get('/', adminOnly, async (req, res) => {
     try {
         const { page = 1, limit = 10, search, startDate, endDate, category } = req.query;
         const offset = (page - 1) * limit;
@@ -65,8 +65,8 @@ router.get('/', auth, async (req, res) => {
     }
 });
 
-// Create new expense
-router.post('/', auth, async (req, res) => {
+// Create new expense (Admin only)
+router.post('/', adminOnly, logCrudOperation('create', 'expense'), async (req, res) => {
     try {
         const { date, amount, category, description, payment_method } = req.body;
         const created_by = req.user.id;
@@ -90,8 +90,8 @@ router.post('/', auth, async (req, res) => {
     }
 });
 
-// Update expense
-router.put('/:id', auth, async (req, res) => {
+// Update expense (Admin only)
+router.put('/:id', adminOnly, logCrudOperation('update', 'expense'), async (req, res) => {
     try {
         const { date, amount, category, description, payment_method } = req.body;
         const { id } = req.params;
@@ -112,8 +112,8 @@ router.put('/:id', auth, async (req, res) => {
     }
 });
 
-// Delete expense
-router.delete('/:id', auth, async (req, res) => {
+// Delete expense (Admin only)
+router.delete('/:id', adminOnly, logCrudOperation('delete', 'expense'), async (req, res) => {
     try {
         const { id } = req.params;
         await pool.query('DELETE FROM smb_expenses WHERE id = ?', [id]);

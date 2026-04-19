@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../db'); // Fixed import
+const { authMiddleware, adminOnly, logCrudOperation } = require('../middleware/adminAuth');
 
-// GET /api/transactions?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD
-router.get('/', async (req, res) => {
+// GET /api/transactions?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD (Admin only)
+router.get('/', adminOnly, async (req, res) => {
     const { startDate, endDate } = req.query;
 
     if (!startDate || !endDate) {
@@ -24,9 +25,9 @@ router.get('/', async (req, res) => {
     }
 });
 
-// POST /api/transactions/monthly-collection/search
+// POST /api/transactions/monthly-collection/search (Admin only)
 // Body: { startDate, endDate, page, limit }
-router.post('/monthly-collection/search', async (req, res) => {
+router.post('/monthly-collection/search', adminOnly, logCrudOperation('read', 'transaction_report'), async (req, res) => {
     const { startDate, endDate, page = 1, limit = 10 } = req.body;
 
     if (!startDate || !endDate) {

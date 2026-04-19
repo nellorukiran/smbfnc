@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
+const { authMiddleware, adminOnly, logCrudOperation } = require('../middleware/adminAuth');
 
-// Get all products
-router.get('/', async (req, res) => {
+// Get all products (Read access for authenticated users)
+router.get('/', authMiddleware, async (req, res) => {
     try {
         const [rows] = await db.query('SELECT * FROM smb_product ORDER BY product_name');
         const products = rows.map(row => ({
@@ -22,8 +23,8 @@ router.get('/', async (req, res) => {
     }
 });
 
-// Create product
-router.post('/', async (req, res) => {
+// Create product (Admin only)
+router.post('/', adminOnly, logCrudOperation('create', 'product'), async (req, res) => {
     const { product_name, description, category } = req.body;
     try {
         const [result] = await db.execute(
@@ -37,8 +38,8 @@ router.post('/', async (req, res) => {
     }
 });
 
-// Update product
-router.put('/:id', async (req, res) => {
+// Update product (Admin only)
+router.put('/:id', adminOnly, logCrudOperation('update', 'product'), async (req, res) => {
     const { id } = req.params;
     const { product_name, description, category, is_active } = req.body;
     try {
@@ -53,8 +54,8 @@ router.put('/:id', async (req, res) => {
     }
 });
 
-// Delete product
-router.delete('/:id', async (req, res) => {
+// Delete product (Admin only)
+router.delete('/:id', adminOnly, logCrudOperation('delete', 'product'), async (req, res) => {
     const { id } = req.params;
     try {
         await db.execute('DELETE FROM smb_product WHERE product_id = ?', [id]);
