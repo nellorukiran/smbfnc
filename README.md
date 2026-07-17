@@ -21,3 +21,8 @@ Where we need to upload the deploye.zip file
 
 Websites->	All Websites -> Dashboard -> Setting & Redeploy
 
+git config --get user.nellorukiran
+git config --get user.nellorukiran@gmail.com
+git remote -v
+
+git remote set-url origin https://nellorukiran@github.com/nellorukiran/smbfnc.git

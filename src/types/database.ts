@@ -18,12 +18,34 @@ export interface Customer {
   total_dues: number;
   per_month_due: number;
   total_due_amount: number;
-  due_amount: number;
+  due_amt: number;
   penalty: number;
-  interest_amount: number;
+  interest_amt: number;
   profit: number;
   total_profit: number;
   doc_charges: number;
+  due_time: string | null;
+  cust_status: string;
+  created_by: string | null;
+  created_date: string | null;
+  updated_by: string | null;
+  updated_date: string | null;
+}
+
+export interface CustomerTransactionForDetails {
+  id: string;
+  customer_id: string;
+  customer_name: string | null;
+  phone_number: string | null;
+  address: string | null;
+  product_name: string | null;
+  totalDueAmount: number;
+  totalDues: number;
+  per_month_due: number;
+  penalty: number;
+  next_due_amount: number;
+  purchase_date: string | null;
+  purchase_date_str: string | null;
   due_time: string | null;
   cust_status: string;
   created_by: string | null;
@@ -125,7 +147,7 @@ export interface ItemDetails {
 export interface DashboardStats {
   totalCustomers: number;
   activeLoans: number;
-  totalCollections: number;
+  activeCustomer: number;
   pendingPayments: number;
   monthlyGrowth: number;
   totalProfit: number;

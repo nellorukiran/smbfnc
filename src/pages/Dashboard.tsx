@@ -25,7 +25,7 @@ const Dashboard = () => {
   const [stats, setStats] = useState<DashboardStats>({
     totalCustomers: 0,
     activeLoans: 0,
-    totalCollections: 0,
+    activeCustomer: 0,
     pendingPayments: 0,
     monthlyGrowth: 0,
     totalProfit: 0,
@@ -44,8 +44,8 @@ const Dashboard = () => {
         api.get('/dashboard/chart-data')
       ]);
 
-      setStats(statsResponse.data);
-      setChartData({ products: chartResponse.data.products });
+      setStats((prevStats) => ({ ...prevStats, ...statsResponse.data }));
+      setChartData({ products: chartResponse.data.products ?? [] });
 
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
@@ -54,35 +54,41 @@ const Dashboard = () => {
     }
   };
 
-  const formatCurrency = (value: number) => {
+  const formatCurrency = (value: number | null | undefined) => {
+    const safeValue = Number(value ?? 0);
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
       currency: 'INR',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
-    }).format(value);
+    }).format(safeValue);
+  };
+
+  const formatCount = (value: number | null | undefined) => {
+    const safeValue = Number(value ?? 0);
+    return safeValue.toLocaleString();
   };
 
   const statCards = [
     {
       title: 'Total Customers',
-      value: stats.totalCustomers.toLocaleString(),
+      value: formatCount(stats.totalCustomers),
+      icon: Users,
+      color: 'emerald', // primary/success
+      glowClass: 'stat-glow-emerald'
+    },
+    {
+      title: 'Active Customers',
+      value: formatCount(stats.activeCustomer),
       icon: Users,
       color: 'emerald', // primary/success
       glowClass: 'stat-glow-emerald'
     },
     {
       title: 'Active Loans',
-      value: stats.activeLoans.toLocaleString(),
-      icon: Wallet,
-      color: 'blue', // info
-      glowClass: 'stat-glow-blue'
-    },
-    {
-      title: 'Monthly Collections',
-      value: formatCurrency(stats.totalCollections),
-      icon: IndianRupee,
-      color: 'emerald',
+      value: formatCount(stats.activeLoans),
+      icon: Users,
+      color: 'emerald', // primary/success
       glowClass: 'stat-glow-emerald'
     },
   ];

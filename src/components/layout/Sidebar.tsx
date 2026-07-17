@@ -48,8 +48,8 @@ const navigation: NavigationItem[] = [
     {
         name: 'Reports', href: '/reports', icon: BarChart3, children: [
             { name: 'Collections', href: '/reports/collections' },
-            { name: 'Customer Dues', href: '/reports/customers' },
             { name: 'Product Sales', href: '/reports/products' },
+             { name: 'Customer Id wise', href: '/reports/customers' },
             { name: 'Address wise', href: '/reports/address' },
         ]
     },
@@ -57,7 +57,6 @@ const navigation: NavigationItem[] = [
 
 const adminNavigation = [
     { name: 'Approvals', href: '/admin/approvals', icon: UserCheck },
-    { name: 'Settings', href: '/settings', icon: Settings },
 ];
 
 const Sidebar = ({ collapsed, onCollapse, mobileOpen = false, onMobileClose }: SidebarProps) => {

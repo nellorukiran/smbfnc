@@ -13,7 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Customer, TransactionHistory } from '@/types/database';
+import { Customer, CustomerTransaction, CustomerTransactionForDetails, TransactionHistory } from '@/types/database';
 import {
   ArrowLeft,
   Edit,
@@ -36,6 +36,7 @@ const CustomerDetails = () => {
   const { customerId } = useParams();
   const navigate = useNavigate();
   const [customer, setCustomer] = useState<Customer | null>(null);
+  const [trasactionDetails, setTrasactionDetails] = useState<CustomerTransactionForDetails | null>(null);
   const [transactions, setTransactions] = useState<TransactionHistory[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -44,13 +45,30 @@ const CustomerDetails = () => {
       fetchCustomerDetails();
     }
   }, [customerId]);
+  useEffect(() => {
+    if (customerId) {
+      fetchCustomerTransactionDetails();
+    }
+  }, [customerId]);
+  const fetchCustomerTransactionDetails = async () => {
+    try {
+      // Fetch customer details
+      const { data: customerTransactionData } = await api.get(`customers/${customerId}/transaction-details`);
+      setTrasactionDetails(customerTransactionData);
 
+    } catch (error) {
+      console.error('Error fetching customer:', error);
+      toast.error('Customer not found');
+      navigate('/customers');
+    } finally {
+      setLoading(false);
+    }
+  };
   const fetchCustomerDetails = async () => {
     try {
       // Fetch customer details
       const { data: customerData } = await api.get(`/customers/${customerId}`);
       setCustomer(customerData);
-
       // Fetch payment history
       const { data: transactionsData } = await api.get(`/customers/${customerId}/history`);
       setTransactions(transactionsData || []);
@@ -112,6 +130,8 @@ const CustomerDetails = () => {
 
   const { isActive, displayStatus } = getStatusDisplay(customer.cust_status);
   const totalPaid = transactions.reduce((sum, t) => sum + Number(t.paid_due || 0), 0);
+  const remainingDues = Number(trasactionDetails?.totalDues ?? 0);
+  const remainingAmount = Number(trasactionDetails?.totalDueAmount ?? 0);
 
   return (
     <DashboardLayout>
@@ -136,7 +156,7 @@ const CustomerDetails = () => {
                 Edit
               </Link>
             </Button>
-            {isActive && (
+            {remainingAmount > 0 && (
               <Button asChild className="gradient-primary">
                 <Link to={`/payments?customerId=${customer.customer_id}`}>
                   <CreditCard className="mr-2 h-4 w-4" />
@@ -148,26 +168,28 @@ const CustomerDetails = () => {
         </div>
 
         {/* Status Banner */}
-        <Card className={isActive ? 'border-primary/50 bg-primary/5' : 'border-success/50 bg-success/5'}>
+        <Card className={remainingAmount > 0 ? 'border-primary/50 bg-primary/5' : 'border-success/50 bg-success/5'}>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <Badge
-                  variant={isActive ? 'default' : 'secondary'}
-                  className={isActive ? 'bg-primary' : 'bg-success'}
+                  variant={remainingAmount > 0 ? 'default' : 'secondary'}
+                  className={remainingAmount > 0 ? 'bg-primary' : 'bg-success'}
                 >
                   {displayStatus}
                 </Badge>
                 <span className="text-sm text-muted-foreground">
-                  {isActive
-                    ? `${customer.total_dues} EMIs remaining`
+                  {remainingDues > 0
+                    ? `${remainingDues} EMIs remaining, Actual Dues are ( ${customer.total_dues} )`
                     : 'All payments completed'}
                 </span>
               </div>
               <div className="text-right">
-                <p className="text-sm text-muted-foreground">Outstanding Amount</p>
-                <p className={`text-2xl font-bold ${isActive ? 'text-warning' : 'text-success'}`}>
-                  {formatCurrency(Number(customer.total_due_amount))}
+                <p className="text-sm text-muted-foreground">Remaining Due</p>
+                <p className={`text-2xl font-bold ${remainingAmount > 0 ? 'text-warning' : 'text-success'}`}>
+                  {remainingAmount > 0
+                    ? `${formatCurrency(remainingAmount)}`
+                    : '0.0'}
                 </p>
               </div>
             </div>
@@ -259,23 +281,27 @@ const CustomerDetails = () => {
           <CardContent>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <div className="p-4 bg-muted/50 rounded-lg">
-                <p className="text-sm text-muted-foreground">Actual Price</p>
-                <p className="text-xl font-bold">{formatCurrency(Number(customer.actual_price))}</p>
-              </div>
-              <div className="p-4 bg-muted/50 rounded-lg">
                 <p className="text-sm text-muted-foreground">Sale Price</p>
                 <p className="text-xl font-bold">{formatCurrency(Number(customer.sale_price))}</p>
               </div>
               <div className="p-4 bg-muted/50 rounded-lg">
-                <p className="text-sm text-muted-foreground">Advance Paid</p>
-                <p className="text-xl font-bold text-success">{formatCurrency(Number(customer.advance))}</p>
+                <p className="text-sm text-muted-foreground">Down Payment</p>
+                <p className="text-xl font-bold">{formatCurrency(Number(customer.advance))}</p>
               </div>
               <div className="p-4 bg-muted/50 rounded-lg">
-                <p className="text-sm text-muted-foreground">Profit</p>
-                <p className="text-xl font-bold text-success">{formatCurrency(Number(customer.profit))}</p>
+                <p className="text-sm text-muted-foreground">Balance Payment</p>
+                <p className="text-xl font-bold text-success">{formatCurrency(Number(customer.due_amt))}</p>
+              </div>
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <p className="text-sm text-muted-foreground">Interest Amount</p>
+                <p className="text-xl font-bold text-success">{formatCurrency(Number(customer.interest_amt))}</p>
               </div>
             </div>
-            <div className="grid gap-4 sm:grid-cols-3 mt-4">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="p-4 bg-primary/10 rounded-lg">
+                <p className="text-sm text-muted-foreground">No Of EMI's</p>
+                <p className="text-xl font-bold text-success">{formatCurrency(Number(customer.total_dues))}</p>
+              </div>
               <div className="p-4 bg-primary/10 rounded-lg">
                 <p className="text-sm text-muted-foreground">Monthly EMI</p>
                 <p className="text-xl font-bold text-primary">{formatCurrency(Number(customer.per_month_due))}</p>
@@ -285,7 +311,7 @@ const CustomerDetails = () => {
                 <p className="text-xl font-bold text-success">{formatCurrency(totalPaid)}</p>
               </div>
               <div className="p-4 bg-warning/10 rounded-lg">
-                <p className="text-sm text-muted-foreground">Remaining Due</p>
+                <p className="text-sm text-muted-foreground">Outstanding Amount</p>
                 <p className="text-xl font-bold text-warning">{formatCurrency(Number(customer.total_due_amount))}</p>
               </div>
             </div>

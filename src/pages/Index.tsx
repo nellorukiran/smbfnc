@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
+import ImageCarousel from '@/components/ui/ImageCarousel';
+import FestivalBanner from '@/components/ui/FestivalBanner';
 import {
   Building2,
   ArrowRight,
@@ -13,6 +15,52 @@ import {
 
 const Index = () => {
   const { user, loading } = useAuth();
+
+  // Finance-related product carousel data
+  const carouselImages = [
+    {
+      id: '1',
+      src: 'https://picsum.photos/seed/fridge/1200/600.jpg',
+      alt: 'Refrigerator',
+      title: 'Premium Refrigerators',
+      description: 'Latest models with easy EMI options. Keep your food fresh with modern refrigeration technology.'
+    },
+    {
+      id: '2',
+      src: 'https://picsum.photos/seed/ac/1200/600.jpg',
+      alt: 'Air Conditioner',
+      title: 'Energy Efficient ACs',
+      description: 'Beat the heat with our range of air conditioners. Affordable cooling solutions for every home.'
+    },
+    {
+      id: '3',
+      src: 'https://picsum.photos/seed/bike/1200/600.jpg',
+      alt: 'Motorcycle',
+      title: 'Two-Wheelers & Bikes',
+      description: 'Ride in style with our motorcycle financing. Easy monthly payments for your dream bike.'
+    },
+    {
+      id: '4',
+      src: 'https://picsum.photos/seed/washing/1200/600.jpg',
+      alt: 'Washing Machine',
+      title: 'Home Appliances',
+      description: 'Complete your home with washing machines, coolers, and more. Flexible payment plans available.'
+    },
+    {
+      id: '5',
+      src: 'https://picsum.photos/seed/kitchen/1200/600.jpg',
+      alt: 'Kitchen Appliances',
+      title: 'Kitchen Essentials',
+      description: 'Modern mixers, grinders, and kitchen appliances. Make cooking easier with our financing options.'
+    },
+    {
+      id: '6',
+      src: 'https://picsum.photos/seed/electrical/1200/600.jpg',
+      alt: 'Electrical Appliances',
+      title: 'Electrical Solutions',
+      description: 'Complete range of electrical appliances and solutions. Power your home with affordable financing.'
+    }
+  ];
 
   const features = [
     {
@@ -44,70 +92,27 @@ const Index = () => {
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img src="/logo.png" alt="SMB Finance" className="w-14 h-14 object-contain" />
-            <span className="font-display text-2xl font-bold">SMB Finance</span>
+            <span className="font-serif text-3xl font-black bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              SMB Finance
+            </span>
           </div>
           <div className="flex items-center gap-4">
             {!loading && (
-              user ? (
-                <Button asChild className="gradient-primary hover:opacity-90">
-                  <Link to="/dashboard">
-                    Go to Dashboard
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
+              <>
+                <Button variant="ghost" asChild>
+                  <Link to="/auth">Sign In</Link>
                 </Button>
-              ) : (
-                <>
-                  <Button variant="ghost" asChild>
-                    <Link to="/auth">Sign In</Link>
-                  </Button>
-                  <Button asChild className="gradient-primary hover:opacity-90">
-                    <Link to="/auth">Get Started</Link>
-                  </Button>
-                </>
-              )
+                <Button asChild className="gradient-primary hover:opacity-90">
+                  <Link to="/auth">Get Started</Link>
+                </Button>
+              </>
             )}
           </div>
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="pt-32 pb-20 px-4">
-        <div className="container mx-auto text-center">
-          <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            <div className="absolute top-1/4 -left-32 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
-            <div className="absolute bottom-1/4 -right-32 w-96 h-96 bg-accent/5 rounded-full blur-3xl" />
-          </div>
-
-          <div className="relative z-10">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full text-primary text-sm font-medium mb-6 animate-fade-in">
-              <CheckCircle className="w-4 h-4" />
-              Modern Finance Management System
-            </div>
-
-            <h1 className="font-display text-4xl md:text-6xl font-bold text-foreground leading-tight max-w-4xl mx-auto animate-fade-in">
-              Manage Your Finance Business with{' '}
-              <span className="text-gradient">Confidence</span>
-            </h1>
-
-            <p className="text-lg md:text-xl text-muted-foreground mt-6 max-w-2xl mx-auto animate-fade-in">
-              A complete solution for customer management, payment tracking, and business analytics.
-              Built for modern finance businesses.
-            </p>
-
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-10 animate-fade-in">
-              <Button size="lg" asChild className="gradient-primary hover:opacity-90 shadow-glow text-lg px-8">
-                <Link to="/auth">
-                  Start Free
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Link>
-              </Button>
-              <Button size="lg" variant="outline" asChild className="text-lg px-8">
-                <Link to="/auth">Sign In</Link>
-              </Button>
-            </div>
-          </div>
-        </div>
-      </section>
+     
+      
 
       {/* Features Section */}
       <section className="py-20 px-4 bg-muted/30">

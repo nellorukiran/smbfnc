@@ -17,6 +17,7 @@ interface PaymentModalProps {
 
 const PaymentModal = ({ customer, isOpen, onClose, onSuccess }: PaymentModalProps) => {
     const [amount, setAmount] = useState('');
+    const [totalDues, setTotalDues] = useState('');
     const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
     const [penalty, setPenalty] = useState('');
     const [loading, setLoading] = useState(false);
@@ -28,6 +29,7 @@ const PaymentModal = ({ customer, isOpen, onClose, onSuccess }: PaymentModalProp
             fetchTransactionDetails();
             setAmount('');
             setPenalty('');
+            setTotalDues('');
             setPaymentDate(new Date().toISOString().split('T')[0]);
         }
     }, [isOpen, customer]);
@@ -41,6 +43,7 @@ const PaymentModal = ({ customer, isOpen, onClose, onSuccess }: PaymentModalProp
             // Pre-fill amount with monthly due if available
             if (data?.per_month_due) {
                 setAmount(String(data.per_month_due));
+                setTotalDues(String(data.total_dues));
             }
         } catch (error) {
             console.error('Error fetching transaction details:', error);
@@ -74,7 +77,7 @@ const PaymentModal = ({ customer, isOpen, onClose, onSuccess }: PaymentModalProp
                 customerId: customer.customer_id,
                 amount: payAmount,
                 paymentDate: paymentDate,
-                createdBy: 'SYSTEM', // You might want to get this from AuthContext if available here or pass it in
+                createdBy: 'ADMIN', // You might want to get this from AuthContext if available here or pass it in
                 penalty: penalty ? parseFloat(penalty) : 0
             };
 
@@ -123,7 +126,7 @@ const PaymentModal = ({ customer, isOpen, onClose, onSuccess }: PaymentModalProp
                         {transactionData && (
                             <div className="grid grid-cols-2 gap-3 p-3 bg-muted/30 rounded-lg text-sm">
                                 <div>
-                                    <span className="text-muted-foreground block text-xs">Total Due</span>
+                                    <span className="text-muted-foreground block text-xs">Pending Due Amount</span>
                                     <span className="font-bold text-rose-600">
                                         {formatCurrency(Number(transactionData.total_due_amount) || 0)}
                                     </span>
@@ -136,8 +139,14 @@ const PaymentModal = ({ customer, isOpen, onClose, onSuccess }: PaymentModalProp
                                 </div>
                                 <div>
                                     <span className="text-muted-foreground block text-xs">Penalty Due</span>
-                                    <span className="font-semibold text-orange-600">
+                                    <span className="font-semibold">
                                         {formatCurrency(Number(transactionData.penalty) || 0)}
+                                    </span>
+                                </div>
+                                 <div>
+                                    <span className="text-muted-foreground block text-xs">Pending Dues</span>
+                                    <span className="font-semibold">
+                                        {formatCurrency(Number(transactionData.total_dues) || 0)}
                                     </span>
                                 </div>
                             </div>
@@ -160,7 +169,7 @@ const PaymentModal = ({ customer, isOpen, onClose, onSuccess }: PaymentModalProp
                                 </div>
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="payDate">Date</Label>
+                                <Label htmlFor="payDate">Payment Date</Label>
                                 <Input
                                     id="payDate"
                                     type="date"
@@ -170,23 +179,31 @@ const PaymentModal = ({ customer, isOpen, onClose, onSuccess }: PaymentModalProp
                                 />
                             </div>
                         </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="modalPenalty">Penalty (Optional) (₹)</Label>
-                            <div className="relative">
-                                <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="modalPenalty">Penalty (Optional) (₹)</Label>
+                                <div className="relative">
+                                    <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                    <Input
+                                        id="modalPenalty"
+                                        type="number"
+                                        value={penalty}
+                                        onChange={(e) => setPenalty(e.target.value)}
+                                        className="pl-10"
+                                        placeholder="0"
+                                    />
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="totalDues">Remaining Dues</Label>
                                 <Input
-                                    id="modalPenalty"
+                                    id="totalDues"
                                     type="number"
-                                    value={penalty}
-                                    onChange={(e) => setPenalty(e.target.value)}
-                                    className="pl-10 warning-input"
-                                    placeholder="0"
+                                    required
+                                    value={totalDues}
+                                    onChange={(e) => setTotalDues(e.target.value)}
                                 />
                             </div>
-                            <p className="text-xs text-muted-foreground">
-                                Enter ONLY if charging a *new* or *additional* penalty.
-                            </p>
                         </div>
 
                         {/* Quick Set Buttons */}
@@ -196,7 +213,7 @@ const PaymentModal = ({ customer, isOpen, onClose, onSuccess }: PaymentModalProp
                                     EMI
                                 </Button>
                                 <Button type="button" variant="outline" size="sm" onClick={() => setAmount(String(transactionData.total_due_amount || 0))}>
-                                    Full Due
+                                    Full Due / Pre Closer
                                 </Button>
                             </div>
                         )}

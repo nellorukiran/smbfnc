@@ -8,19 +8,16 @@ router.get('/stats', async (req, res) => {
         const [totalCustomersResult] = await db.query('SELECT COUNT(*) as count FROM smb_customer_details');
         const totalCustomers = totalCustomersResult[0].count;
 
-        // 2. Active Loans
+        // 2. Active Customers
         // Frontend logic: 'ACTIVE', 'A', 'U' are active. 
-        const [activeLoansResult] = await db.query("SELECT COUNT(*) as count FROM smb_customer_details WHERE cust_status IN ('ACTIVE', 'A', 'U')");
+        const [activeCustomerResult] = await db.query("SELECT COUNT(*) as count FROM smb_customer_details WHERE cust_status IN ('ACTIVE', 'A', 'U')");
+        const activeCustomer = activeCustomerResult[0].count;
+
+        // 3. Active Loans
+        // Frontend logic: 'SMB', 'AMOUNT' are active. 
+        const [activeLoansResult] = await db.query("SELECT COUNT(*) as count FROM smb_customer_details WHERE (shop_name = 'SMB' OR product_name = 'AMOUNT' OR product_name = 'SMB') AND cust_status IN ('ACTIVE', 'A', 'U')");
         const activeLoans = activeLoansResult[0].count;
 
-        // 3. Monthly Collections
-        const [collectionsResult] = await db.query(`
-            SELECT SUM(paid_due) as total 
-            FROM smb_transactions_history 
-            WHERE MONTH(transaction_date) = MONTH(CURRENT_DATE()) 
-            AND YEAR(transaction_date) = YEAR(CURRENT_DATE())
-        `);
-        const totalCollections = collectionsResult[0].total || 0;
 
         // 4. Pending Payments (Total Overdue)
         const [pendingResult] = await db.query("SELECT SUM(tot_due_amt) as total FROM smb_customer_details WHERE cust_status IN ('ACTIVE', 'A', 'U')");
@@ -34,15 +31,15 @@ router.get('/stats', async (req, res) => {
         const [growthResult] = await db.query(`
       SELECT COUNT(*) as count 
       FROM smb_customer_details 
-      WHERE MONTH(created_date) = MONTH(CURRENT_DATE()) 
-      AND YEAR(created_date) = YEAR(CURRENT_DATE())
+      WHERE MONTH(purchase_date) = MONTH(CURRENT_DATE()) 
+      AND YEAR(purchase_date) = YEAR(CURRENT_DATE())
     `);
         const monthlyGrowth = growthResult[0].count;
 
         res.json({
             totalCustomers,
             activeLoans,
-            totalCollections,
+            activeCustomer,
             pendingPayments,
             monthlyGrowth,
             totalProfit
@@ -119,24 +116,24 @@ router.get('/stats/registration', async (req, res) => {
     try {
         const queries = {
             monthly: `
-                SELECT DATE_FORMAT(created_date, '%Y-%m') as period, COUNT(*) as count 
+                SELECT DATE_FORMAT(purchase_date, '%Y-%m') as period, COUNT(*) as count 
                 FROM smb_customer_details 
-                WHERE created_date >= DATE_ADD(CURDATE(), INTERVAL -12 MONTH) 
-                GROUP BY DATE_FORMAT(created_date, '%Y-%m') 
+                WHERE purchase_date >= DATE_ADD(CURDATE(), INTERVAL -12 MONTH) 
+                GROUP BY DATE_FORMAT(purchase_date, '%Y-%m') 
                 ORDER BY period
             `,
             quarterly: `
-                SELECT CONCAT(YEAR(created_date), '-Q', QUARTER(created_date)) as period, COUNT(*) as count 
+                SELECT CONCAT(YEAR(purchase_date), '-Q', QUARTER(purchase_date)) as period, COUNT(*) as count 
                 FROM smb_customer_details 
-                WHERE created_date >= DATE_ADD(CURDATE(), INTERVAL -12 MONTH) 
-                GROUP BY CONCAT(YEAR(created_date), '-Q', QUARTER(created_date)) 
+                WHERE purchase_date >= DATE_ADD(CURDATE(), INTERVAL -12 MONTH) 
+                GROUP BY CONCAT(YEAR(purchase_date), '-Q', QUARTER(purchase_date)) 
                 ORDER BY period
             `,
             yearly: `
-                SELECT DATE_FORMAT(created_date, '%Y') as period, COUNT(*) as count 
+                SELECT DATE_FORMAT(purchase_date, '%Y') as period, COUNT(*) as count 
                 FROM smb_customer_details 
-                WHERE created_date >= DATE_ADD(CURDATE(), INTERVAL -3 YEAR) 
-                GROUP BY DATE_FORMAT(created_date, '%Y') 
+                WHERE purchase_date >= DATE_ADD(CURDATE(), INTERVAL -3 YEAR) 
+                GROUP BY DATE_FORMAT(purchase_date, '%Y') 
                 ORDER BY period
             `
         };

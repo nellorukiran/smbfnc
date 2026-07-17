@@ -133,23 +133,11 @@ const EditCustomer = () => {
         shop_name: formData.shopName,
         product_name: formData.productName,
         product_model: formData.productModel,
-        actual_price: parseFloat(formData.actualPrice) || 0,
-        sale_price: parseFloat(formData.salePrice) || 0,
-        total_dues: parseInt(formData.totalDues) || 5,
-        advance: parseFloat(formData.advance) || 0,
-        penalty: 0,
         purchase_date_str: formData.purchaseDate,
         due_time: formData.dueTime,
-        due_amount: perMonthDue,
-        total_due_amount: totalDueAmount,
-        per_month_due: perMonthDue,
-        interest_amount: 0,
-        profit: profit,
-        doc_charges: parseFloat(formData.docCharges) || 0,
-        total_profit: profit,
         cust_status: formData.custStatus,
         aadhar_number: formData.aadharNumber,
-        updated_by: user?.user_name || 'SYSTEM'
+        updated_by: user?.user_name || 'ADMIN'
       };
 
       await api.put(`/customers/${customerId}`, payload);
@@ -217,7 +205,7 @@ const EditCustomer = () => {
                   id="phoneNumber"
                   placeholder="e.g. 9876543210"
                   value={formData.phoneNumber}
-                  maxLength={10}
+                  maxLength={15}
                   onChange={(e) => {
                     const val = e.target.value.replace(/\D/g, '');
                     if (val.length <= 10) handleChange('phoneNumber', val);
@@ -240,8 +228,8 @@ const EditCustomer = () => {
                     <SelectValue placeholder="Select status" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="ACTIVE">Active</SelectItem>
-                    <SelectItem value="CLOSED">Closed</SelectItem>
+                    <SelectItem value="I">Active</SelectItem>
+                    <SelectItem value="C">Closed</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -366,7 +354,13 @@ const EditCustomer = () => {
                     <SelectValue placeholder="Select day" />
                   </SelectTrigger>
                   <SelectContent>
-                    {[1, 5, 10, 15, 20, 25].map(day => (
+                    {[
+                      "1st–5th",
+                      "5th–10th",
+                      "10th–15th",
+                      "15th–20th",
+                      "20th–25th"
+                    ].map(day => (
                       <SelectItem key={day} value={day.toString()}>{day}</SelectItem>
                     ))}
                   </SelectContent>

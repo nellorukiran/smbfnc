@@ -36,6 +36,16 @@ import {
   Loader2,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from '@/components/ui/alert-dialog';
 
 const Customers = () => {
   const { user: currentUser, isAdmin } = useAuth();
@@ -106,17 +116,30 @@ const Customers = () => {
     setCurrentPage(1); // Reset to first page on filter
   };
 
-  const handleDelete = async (customerId: string) => {
-    if (!confirm('Are you sure you want to delete this customer?')) return;
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
+  const handleDelete = (customerId: string) => {
+    const customer = customers.find((c) => c.customer_id === customerId) || null;
+    setCustomerToDelete(customer);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!customerToDelete) return;
+    setDeleting(true);
     try {
-      await api.delete(`/customers/${customerId}`);
-
-      toast.success('Customer deleted successfully');
+      await api.delete(`/customers/${customerToDelete.customer_id}`);
+      toast.success('Customer closed successfully');
+      setDeleteDialogOpen(false);
+      setCustomerToDelete(null);
       fetchCustomers();
     } catch (error) {
       console.error('Error deleting customer:', error);
       toast.error('Failed to delete customer');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -294,8 +317,8 @@ const Customers = () => {
                           </TableCell>
                           <TableCell>
                             {(() => {
-                              const isActive = customer.cust_status === 'ACTIVE' || customer.cust_status === 'A' || customer.cust_status === 'U';
-                              const isInactive = customer.cust_status === 'INACTIVE' || customer.cust_status === 'I';
+                              const isActive = customer.cust_status === 'ACTIVE' || customer.cust_status === 'I' || customer.cust_status === 'A' || customer.cust_status === 'U';
+                              const isInactive = customer.cust_status === 'INACTIVE' || customer.cust_status === 'C';
                               const isClosed = customer.cust_status === 'CLOSED' || customer.cust_status === 'D';
 
                               let displayStatus = customer.cust_status;
@@ -355,10 +378,13 @@ const Customers = () => {
                                 {isAdmin && (
                                   <DropdownMenuItem
                                     className="text-destructive"
-                                    onClick={() => handleDelete(customer.customer_id)}
+                                    onClick={() => {
+                                      setCustomerToDelete(customer);
+                                      setDeleteDialogOpen(true);
+                                    }}
                                   >
                                     <Trash2 className="mr-2 h-4 w-4" />
-                                    Delete
+                                    Close
                                   </DropdownMenuItem>
                                 )}
                               </DropdownMenuContent>
@@ -467,6 +493,24 @@ const Customers = () => {
             fetchCustomers();
           }}
         />
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you sure you want to close this customer?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to close this customer?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => { setCustomerToDelete(null); setDeleteDialogOpen(false); }}>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleConfirmDelete} disabled={deleting}>
+                {deleting ? 'Deleting...' : 'Yes, Close'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
       </div>
     </DashboardLayout>

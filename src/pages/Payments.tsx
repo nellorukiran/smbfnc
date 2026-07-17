@@ -32,6 +32,7 @@ const Payments = () => {
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
   const [penalty, setPenalty] = useState('');
+  const [totalDues, setTotalDues] = useState('');
 
   useEffect(() => {
     if (searchParams.get('customerId')) {
@@ -61,6 +62,7 @@ const Payments = () => {
       if (transactionData) {
         setTransaction(transactionData);
         setPaymentAmount(transactionData.per_month_due?.toString() || '0');
+        setTotalDues(transactionData.total_dues?.toString() || '0');
       }
 
       // Fetch transaction history
@@ -99,7 +101,7 @@ const Payments = () => {
         customerId: customer.customer_id,
         amount: amount,
         paymentDate: paymentDate,
-        createdBy: user?.user_name || 'SYSTEM',
+        createdBy: user?.user_name || 'ADMIN',
         penalty: penalty ? parseFloat(penalty) : 0
       };
 
@@ -381,6 +383,21 @@ const Payments = () => {
                       />
                     </div>
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="totalDues">Remaining Dues (₹)</Label>
+                    <div className="relative">
+                      <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="totalDues"
+                        type="number"
+                        value={totalDues}
+                        onChange={(e) => setTotalDues(e.target.value)}
+                        className="pl-10"
+                        required
+                      />
+                    </div>
+                  </div>
+
                 </div>
 
                 {/* Quick amount buttons */}

@@ -5,7 +5,8 @@ const { adminOnly, logCrudOperation } = require('../middleware/adminAuth');
 
 // POST /api/payments - Record payment (Admin only)
 router.post('/', adminOnly, logCrudOperation('create', 'payment'), async (req, res) => {
-    const { customerId, amount, paymentDate, createdBy, penalty } = req.body;
+    let { customerId, amount, paymentDate, createdBy, penalty } = req.body;
+    createdBy = createdBy?.toUpperCase();
     let paidAmount = parseFloat(amount);
     let newPenalty = parseFloat(penalty) || 0;
 
@@ -59,8 +60,6 @@ router.post('/', adminOnly, logCrudOperation('create', 'payment'), async (req, r
 
         // 1. Penalty Handling: Deduct penalty first
         if (newPenalty > 0) {
-             console.log("totalDueAmount-3: "+totalDueAmount);
-             console.log("remainingPaidAmount-3.1: "+remainingPaidAmount);
             // New penalty is being charged
             if (remainingPaidAmount >= newPenalty) {
                 remainingPaidAmount -= newPenalty;
@@ -101,26 +100,21 @@ router.post('/', adminOnly, logCrudOperation('create', 'payment'), async (req, r
         // 3. Due Count Handling: Each successful payment reduces total_due by 1
         if (paidAmount > 0 && totalDuesCount > 0) {
             totalDuesCount = Math.max(0, totalDuesCount - 1);
-            console.log("totalDuesCount-9: "+totalDuesCount);
         }
 
         // 4. Status Update Logic
         let newStatus;
         if (totalDueAmount <= 0.5) {
-            console.log("remainingPaidAmount-10: "+remainingPaidAmount);
-            newStatus = 'CLOSED';
+            newStatus = 'C';
             totalDueAmount = 0;
             currentPenalty = 0;
             nextDueAmount = 0;
             totalDuesCount = 0;
         } else {
-             console.log("remainingPaidAmount-11: "+remainingPaidAmount);
-             console.log("totalDueAmount-12: "+totalDueAmount);
-            newStatus = 'UPDATED';
+            newStatus = 'U';
             // Update next due amount for active loans
             if (totalDueAmount > 0) {
                 nextDueAmount = Math.min(totalDueAmount, perMonthDue);
-                console.log("nextDueAmount-13: "+nextDueAmount);
             }
         }
 
@@ -144,9 +138,9 @@ router.post('/', adminOnly, logCrudOperation('create', 'payment'), async (req, r
         // 7. Update smb_customer_details
         await connection.query(
             `UPDATE smb_customer_details 
-            SET tot_due_amt = ?, due_amt = ?, total_dues = ?, cust_status = ?, updated_by = ?, last_updated_date = NOW()
+            SET cust_status = ?, updated_by = ?, last_updated_date = NOW()
             WHERE customer_id = ?`,
-            [totalDueAmount, totalDueAmount, totalDuesCount, newStatus, createdBy, customerId]
+            [newStatus, createdBy, customerId]
         );
 
         await connection.commit();

@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../db'); // Fixed import
 const { authMiddleware, adminOnly, logCrudOperation } = require('../middleware/adminAuth');
+const { closeCustomer } = require('../services/customerDeletion');
 
 // GET /api/customers - Get All Customers with Pagination and Sorting (Read access for authenticated users)
 router.get('/', authMiddleware, async (req, res) => {
@@ -16,9 +17,9 @@ router.get('/', authMiddleware, async (req, res) => {
         const queryParams = [];
 
         if (search) {
-            whereClause += " AND (customer_id LIKE ? OR customer_name LIKE ? OR phone_number LIKE ?)";
+            whereClause += " AND (customer_id LIKE ? OR customer_name LIKE ?)";
             const searchTerm = `%${search}%`;
-            queryParams.push(searchTerm, searchTerm, searchTerm);
+            queryParams.push(searchTerm, searchTerm);
         }
 
         if (status !== 'ALL') {
@@ -91,7 +92,6 @@ router.get('/:id', async (req, res) => {
         res.json(rows[0]);
     } catch (error) {
         console.error('Error fetching customer:', error);
-        // Log detailed error for debugging
         console.error(JSON.stringify(error, Object.getOwnPropertyNames(error)));
         res.status(500).json({ message: 'Error fetching customer' });
     }
@@ -107,11 +107,11 @@ router.get('/:id/transaction-details', async (req, res) => {
             // Map database fields to frontend expected names and ensure numeric values
             const mappedTxn = {
                 ...txn,
-                total_due_amount: parseFloat(txn.total_due_amt) || 0,
+                totalDueAmount: parseFloat(txn.total_due_amt) || 0,
                 per_month_due: parseFloat(txn.per_month_due) || 0,
                 penalty: parseFloat(txn.penalty) || 0,
                 next_due_amt: parseFloat(txn.next_due_amt) || 0,
-                total_dues: parseInt(txn.total_dues) || 0
+                totalDues: parseInt(txn.total_dues) || 0
             };
             return res.json(mappedTxn);
         }
@@ -132,6 +132,7 @@ router.get('/:id/transaction-details', async (req, res) => {
             address: customer.address,
             product_name: customer.product_name,
             total_due_amount: parseFloat(customer.tot_due_amt) || 0, // Map aliases
+            due_amt: parseFloat(customer.due_amt) || 0, // Map aliases
             total_dues: parseInt(customer.total_dues) || 0,
             per_month_due: parseFloat(customer.per_month_due) || 0,
             penalty: parseFloat(customer.penalty) || 0,
@@ -168,6 +169,7 @@ router.get('/:id/history', async (req, res) => {
 // POST /api/customers - Create new customer (Admin only)
 router.post('/', adminOnly, logCrudOperation('create', 'customer'), async (req, res) => {
     try {
+        let created_by; // Declare as let to allow reassignment
         const {
             customer_id,
             customer_name,
@@ -179,23 +181,24 @@ router.post('/', adminOnly, logCrudOperation('create', 'customer'), async (req, 
             sale_price,
             total_due_amount, // Frontend sends total_due_amount, we map to tot_due_amt
             advance,
-            created_by,
+            created_by: createdByInput,
             doc_charges,
             aadhar_number,
             due_amount,
             total_profit,
             purchase_date,
             purchase_date_str,
-            cust_status = 'ACTIVE',
+            cust_status = 'I',
             profit,
             interest_amount,
             per_month_due,
             next_due_amount,
             due_time,
             penalty,
+            total_dues,
             product_model
         } = req.body;
-
+        created_by = createdByInput?.toUpperCase();
         const phoneNum = "+91-" + phone_number;
         const dueAmt = parseFloat(due_amount) || 0;
         const nextDueAmt = parseFloat(next_due_amount) || 0;
@@ -220,9 +223,9 @@ router.post('/', adminOnly, logCrudOperation('create', 'customer'), async (req, 
             customer_id, customer_name, phoneNum, address, shop_name,
             product_name, actual_price, sale_price, totalDueAmt, dueAmt, // due_amt same as tot_due_amt initially
             advance, created_by, created_by,
-            doc_charges, aadhar_number, purchase_date, purchase_date_str || purchase_date || null, cust_status,
+            doc_charges, aadhar_number, purchase_date, purchase_date_str || purchase_date || null, 'I',
             profitVal, totalProfit, interest_amount, per_month_due, due_time, penalty, product_model,
-            totalDuesCount
+            total_dues
         ]);
 
         // Also create entry in smb_customer_transactions
@@ -236,8 +239,8 @@ router.post('/', adminOnly, logCrudOperation('create', 'customer'), async (req, 
 
         await pool.query(txnQuery, [
             customer_id, customer_name, phoneNum, address, product_name,
-            totalDuesCount, per_month_due, penalty, purchase_date, purchase_date_str, due_time,
-            totalDueAmt, nextDueAmt, cust_status, created_by, created_by
+            total_dues, per_month_due, penalty, purchase_date, purchase_date_str, due_time,
+            totalDueAmt, nextDueAmt, 'I', created_by, created_by
         ]);
 
         res.status(201).json({ message: 'Customer created successfully', customerId: customer_id });
@@ -257,44 +260,68 @@ router.put('/:id', adminOnly, logCrudOperation('update', 'customer'), async (req
         address,
         shop_name,
         product_name,
-        actual_price,
-        sale_price,
-        tot_due_amt,
-        advance,
         updated_by,
-        doc_charges,
+        purchase_date_str,
         aadhar_number,
         purchase_date,
         cust_status,
-        profit,
-        interest_amount,
-        per_month_due,
         due_time,
-        penalty,
         product_model
     } = req.body;
 
-    const totalDue = req.body.total_due_amount !== undefined ? req.body.total_due_amount : tot_due_amt;
-
+     const phoneNum = "+91-" + phone_number;
     const query = `
         UPDATE smb_customer_details SET
-            customer_name = ?, phone_number = ?, address = ?, shop_name = ?,
-            product_name = ?, actual_price = ?, sale_price = ?, tot_due_amt = ?,
-            advance = ?, updated_by = ?, last_updated_date = NOW(),
-            doc_charges = ?, aadhar_number = ?, purchase_date = ?, cust_status = ?,
-            profit = ?, interest_amt = ?, per_month_due = ?, due_time = ?, penalty = ?, product_model = ?
+            customer_name   = COALESCE(?, customer_name),
+            phone_number   = COALESCE(?, phone_number),
+            address   = COALESCE(?, address),
+            shop_name   = COALESCE(?, shop_name),
+            product_name   = COALESCE(?, product_name),
+            updated_by   = COALESCE(?, updated_by),
+            aadhar_number   = COALESCE(?, aadhar_number),
+            purchase_date   = COALESCE(?, purchase_date),
+            purchase_date_str   = COALESCE(?, purchase_date_str),
+            cust_status   = COALESCE(?, cust_status),
+            due_time   = COALESCE(?, due_time),
+            product_model   = COALESCE(?, product_model)
         WHERE customer_id = ?
     `;
 
     try {
         await pool.query(query, [
-            customer_name, phone_number, address, shop_name,
-            product_name, actual_price, sale_price, totalDue,
-            advance, updated_by,
-            doc_charges, aadhar_number, purchase_date, cust_status,
-            profit, interest_amount, per_month_due, due_time, penalty, product_model,
+            customer_name, phoneNum, address, shop_name,
+            product_name,
+            'ADMIN',
+            aadhar_number, purchase_date,purchase_date_str, cust_status,
+            due_time, product_model,
             id
         ]);
+
+
+        const transactionQuery = `
+        UPDATE smb_customer_transactions SET
+            customer_name   = COALESCE(?, customer_name),
+            phone_number   = COALESCE(?, phone_number),
+            address   = COALESCE(?, address),
+            product_name   = COALESCE(?, product_name),
+            updated_by   = COALESCE(?, updated_by),
+            purchase_date   = COALESCE(?, purchase_date),
+            purchase_date_str   = COALESCE(?, purchase_date_str),
+            cust_status   = COALESCE(?, cust_status),
+            due_time   = COALESCE(?, due_time)
+        WHERE customer_id = ?
+    `;
+
+
+        await pool.query(transactionQuery, [
+            customer_name, phoneNum, address,
+            product_name,
+            'ADMIN',
+            purchase_date,purchase_date_str, cust_status,
+            due_time,
+            id
+        ]);
+
 
         res.json({ message: 'Customer updated successfully' });
     } catch (error) {
@@ -306,12 +333,16 @@ router.put('/:id', adminOnly, logCrudOperation('update', 'customer'), async (req
 // DELETE /api/customers/:id (Admin only)
 router.delete('/:id', adminOnly, logCrudOperation('delete', 'customer'), async (req, res) => {
     const { id } = req.params;
-    try {
-        await pool.query('DELETE FROM smb_customer_details WHERE customer_id = ?', [id]);
-        await pool.query('DELETE FROM smb_customer_transactions WHERE customer_id = ?', [id]);
-        await pool.query('DELETE FROM smb_transactions_history WHERE customer_id = ?', [id]);
+    const updatedBy = req.user?.user_name || req.user?.username || req.user?.id || 'SYSTEM';
 
-        res.json({ message: 'Customer deleted successfully' });
+    try {
+        const result = await closeCustomer(pool, id, updatedBy);
+
+        if (!result.success) {
+            return res.status(result.status || 500).json({ message: result.message });
+        }
+
+        res.json({ message: result.message });
     } catch (error) {
         console.error('Error deleting customer:', error);
         res.status(500).json({ message: 'Error deleting customer' });

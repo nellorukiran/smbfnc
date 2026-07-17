@@ -347,7 +347,13 @@ const NewCustomer = () => {
                     <SelectValue placeholder="Select day" />
                   </SelectTrigger>
                   <SelectContent>
-                    {[1, 5, 10, 15, 20, 25].map(day => (
+                    {[
+                      "1st–5th",
+                      "5th–10th",
+                      "10th–15th",
+                      "15th–20th",
+                      "20th–25th"
+                    ].map(day => (
                       <SelectItem key={day} value={day.toString()}>{day}</SelectItem>
                     ))}
                   </SelectContent>
