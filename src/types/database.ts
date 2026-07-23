@@ -61,7 +61,7 @@ export interface CustomerTransaction {
   phone_number: string | null;
   address: string | null;
   product_name: string | null;
-  total_due_amount: number;
+  totalDueAmount: number;
   total_dues: number;
   per_month_due: number;
   penalty: number;

@@ -31,8 +31,9 @@ const Payments = () => {
   const [submitting, setSubmitting] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
-  const [penalty, setPenalty] = useState('');
-  const [totalDues, setTotalDues] = useState('');
+  //const [penalty, setPenalty] = useState('');
+  //const [totalDues, setTotalDues] = useState('');
+  const [totalDueAmount, setTotalDueAmount] = useState('');
 
   useEffect(() => {
     if (searchParams.get('customerId')) {
@@ -49,7 +50,7 @@ const Payments = () => {
     setLoading(true);
     setCustomer(null);
     setTransaction(null);
-    setPenalty(''); // Reset penalty
+    //setPenalty(''); // Reset penalty
 
     try {
       // Fetch customer details
@@ -61,8 +62,11 @@ const Payments = () => {
 
       if (transactionData) {
         setTransaction(transactionData);
-        setPaymentAmount(transactionData.per_month_due?.toString() || '0');
-        setTotalDues(transactionData.total_dues?.toString() || '0');
+        const monthlyDue = Number(transactionData.per_month_due || 0);
+        const totalDue = Number(transactionData.totalDueAmount || 0);
+        setPaymentAmount(String(Math.min(monthlyDue, totalDue)));
+        //setTotalDues(transactionData.total_dues?.toString() || '0');
+        setTotalDueAmount(transactionData.totalDueAmount?.toString() || '0');
       }
 
       // Fetch transaction history
@@ -101,8 +105,9 @@ const Payments = () => {
         customerId: customer.customer_id,
         amount: amount,
         paymentDate: paymentDate,
+        //totalDues: totalDues,
         createdBy: user?.user_name || 'ADMIN',
-        penalty: penalty ? parseFloat(penalty) : 0
+        //penalty: penalty ? parseFloat(penalty) : 0
       };
 
       await api.post('/payments', payload);
@@ -241,96 +246,6 @@ const Payments = () => {
           </div>
         )}
 
-        {/* Transaction History */}
-        {customer && transaction && transactionHistory.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="font-display text-lg flex items-center gap-2">
-                <Calendar className="h-5 w-5 text-primary" />
-                Transaction History
-              </CardTitle>
-              <CardDescription>
-                Complete payment history for {customer.customer_name}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Transaction ID</TableHead>
-                      <TableHead>Payment Date</TableHead>
-                      <TableHead>Amount Paid</TableHead>
-                      <TableHead>Balance Due</TableHead>
-                      <TableHead>Created By</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {transactionHistory.map((history) => (
-                      <TableRow key={history.id}>
-                        <TableCell className="font-medium">
-                          {history.transaction_id}
-                        </TableCell>
-                        <TableCell>
-                          {history.paid_date ? new Date(history.paid_date).toLocaleDateString() : 'N/A'}
-                        </TableCell>
-                        <TableCell className="text-success font-medium">
-                          {formatCurrency(Number(history.paid_due))}
-                        </TableCell>
-                        <TableCell className={Number(history.balance_due) > 0 ? "text-warning" : "text-success"}>
-                          {formatCurrency(Number(history.balance_due))}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <User className="h-4 w-4 text-muted-foreground" />
-                            {history.created_by || 'SYSTEM'}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-              
-              {/* Summary Statistics */}
-              <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="p-4 bg-muted/50 rounded-lg">
-                  <p className="text-sm text-muted-foreground">Total Payments</p>
-                  <p className="text-2xl font-bold text-success">
-                    {transactionHistory.length}
-                  </p>
-                </div>
-                <div className="p-4 bg-muted/50 rounded-lg">
-                  <p className="text-sm text-muted-foreground">Total Paid</p>
-                  <p className="text-2xl font-bold text-success">
-                    {formatCurrency(
-                      transactionHistory.reduce((sum, h) => sum + Number(h.paid_due), 0)
-                    )}
-                  </p>
-                </div>
-                <div className="p-4 bg-muted/50 rounded-lg">
-                  <p className="text-sm text-muted-foreground">Current Balance</p>
-                  <p className="text-2xl font-bold text-warning">
-                    {formatCurrency(Number(transaction?.total_due_amount || 0))}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* No Transaction History */}
-        {customer && transactionHistory.length === 0 && (
-          <Card className="bg-muted/30">
-            <CardContent className="py-8 text-center">
-              <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="font-display text-xl font-bold">No Transaction History</h3>
-              <p className="text-muted-foreground mt-2">
-                No payment records found for this customer yet.
-              </p>
-            </CardContent>
-          </Card>
-        )}
 
         {/* Payment Form */}
         {customer && transaction && (
@@ -369,7 +284,7 @@ const Payments = () => {
                       required
                     />
                   </div>
-                  <div className="space-y-2">
+                  {/* <div className="space-y-2">
                     <Label htmlFor="penalty">Penalty (₹)</Label>
                     <div className="relative">
                       <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -396,7 +311,7 @@ const Payments = () => {
                         required
                       />
                     </div>
-                  </div>
+                  </div> */}
 
                 </div>
 
@@ -406,17 +321,21 @@ const Payments = () => {
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => setPaymentAmount(String(transaction.per_month_due || 0))}
+                    onClick={() => {
+                      const monthlyDue = Number(transaction.per_month_due || 0);
+                      const totalDue = Number(transaction.totalDueAmount || 0);
+                      setPaymentAmount(String(Math.min(monthlyDue, totalDue)));
+                    }}
                   >
-                    Monthly Due: ₹{Math.round(Number(transaction.per_month_due)).toLocaleString()}
+                    Monthly Due: ₹{Math.round(Math.min(Number(transaction.per_month_due || 0), Number(transaction.totalDueAmount || 0))).toLocaleString()}
                   </Button>
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => setPaymentAmount(String(transaction.total_due_amount || 0))}
+                    onClick={() => setPaymentAmount(String(transaction.totalDueAmount || 0))}
                   >
-                    Full Amount: ₹{Math.round(Number(transaction.total_due_amount)).toLocaleString()}
+                    Full Amount: ₹{Math.round(Number(transaction.totalDueAmount)).toLocaleString()}
                   </Button>
                 </div>
 
@@ -446,6 +365,97 @@ const Payments = () => {
               <h3 className="font-display text-xl font-bold text-success">Loan Fully Paid</h3>
               <p className="text-muted-foreground mt-2">
                 This customer has completed all payments.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Transaction History */}
+        {customer && transaction && transactionHistory.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="font-display text-lg flex items-center gap-2">
+                <Calendar className="h-5 w-5 text-primary" />
+                Transaction History
+              </CardTitle>
+              <CardDescription>
+                Complete payment history for {customer.customer_name}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {/* Summary Statistics */}
+              <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="p-4 bg-muted/50 rounded-lg">
+                  <p className="text-sm text-muted-foreground">Total Payments</p>
+                  <p className="text-2xl font-bold text-success">
+                    {transactionHistory.length}
+                  </p>
+                </div>
+                <div className="p-4 bg-muted/50 rounded-lg">
+                  <p className="text-sm text-muted-foreground">Total Paid</p>
+                  <p className="text-2xl font-bold text-success">
+                    {formatCurrency(
+                      transactionHistory.reduce((sum, h) => sum + Number(h.paid_due), 0)
+                    )}
+                  </p>
+                </div>
+                <div className="p-4 bg-muted/50 rounded-lg">
+                  <p className="text-sm text-muted-foreground">Current Balance</p>
+                  <p className="text-2xl font-bold text-warning">
+                    {formatCurrency(Number(transaction?.totalDueAmount || 0))}
+                  </p>
+                </div>
+              </div>
+              <div className="mt-6 rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Transaction ID</TableHead>
+                      <TableHead>Payment Date</TableHead>
+                      <TableHead>Amount Paid</TableHead>
+                      <TableHead>Balance Due</TableHead>
+                      <TableHead>Created By</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {transactionHistory.map((history) => (
+                      <TableRow key={history.id}>
+                        <TableCell className="font-medium">
+                          {history.transaction_id}
+                        </TableCell>
+                        <TableCell>
+                          {history.paid_date ? new Date(history.paid_date).toLocaleDateString() : 'N/A'}
+                        </TableCell>
+                        <TableCell className="text-success font-medium">
+                          {formatCurrency(Number(history.paid_due))}
+                        </TableCell>
+                        <TableCell className={Number(history.balance_due) > 0 ? "text-warning" : "text-success"}>
+                          {formatCurrency(Number(history.balance_due))}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <User className="h-4 w-4 text-muted-foreground" />
+                            {history.created_by || 'SYSTEM'}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              
+            </CardContent>
+          </Card>
+        )}
+
+        {/* No Transaction History */}
+        {customer && transactionHistory.length === 0 && (
+          <Card className="bg-muted/30">
+            <CardContent className="py-8 text-center">
+              <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="font-display text-xl font-bold">No Transaction History</h3>
+              <p className="text-muted-foreground mt-2">
+                No payment records found for this customer yet.
               </p>
             </CardContent>
           </Card>

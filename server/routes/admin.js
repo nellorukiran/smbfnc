@@ -60,7 +60,7 @@ router.put('/users/:id/approve', adminOnly, logCrudOperation('update', 'user_app
         
         if (status === 'APPROVED') {
             updateQuery += ', approval_date = NOW(), approved_by = ?';
-            updateParams.push(adminId);
+            updateParams.push(adminUsername);
             
             // Update role and user_type if provided
             if (role) {

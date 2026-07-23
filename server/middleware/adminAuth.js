@@ -10,14 +10,21 @@ const authMiddleware = (req, res, next) => {
     }
 
     try {
-        // Verify token
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+        // Verify token using JWT_SECRET
+        const secret = process.env.JWT_SECRET;
+        if (!secret) {
+            console.error('WARNING: JWT_SECRET is not set in environment variables!');
+            return res.status(500).json({ message: 'Server configuration error' });
+        }
+        
+        const decoded = jwt.verify(token, secret);
 
         // Add user from payload to request object
         req.user = decoded;
         next();
     } catch (err) {
-        res.status(401).json({ message: 'Token is not valid' });
+        console.error('Token verification error:', err.message);
+        res.status(401).json({ message: 'Token is not valid', error: err.message });
     }
 };
 
@@ -31,8 +38,14 @@ const adminOnly = (req, res, next) => {
     }
 
     try {
-        // Verify token
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+        // Verify token using JWT_SECRET
+        const secret = process.env.JWT_SECRET;
+        if (!secret) {
+            console.error('WARNING: JWT_SECRET is not set in environment variables!');
+            return res.status(500).json({ message: 'Server configuration error' });
+        }
+        
+        const decoded = jwt.verify(token, secret);
 
         // Check if user has admin role
         if (decoded.role !== 'ROLE_ADMIN') {
@@ -48,7 +61,8 @@ const adminOnly = (req, res, next) => {
         req.user = decoded;
         next();
     } catch (err) {
-        res.status(401).json({ message: 'Token is not valid' });
+        console.error('Token verification error:', err.message);
+        res.status(401).json({ message: 'Token is not valid', error: err.message });
     }
 };
 
@@ -62,8 +76,14 @@ const checkRole = (allowedRoles) => {
         }
 
         try {
-            // Verify token
-            const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+            // Verify token using JWT_SECRET
+            const secret = process.env.JWT_SECRET;
+            if (!secret) {
+                console.error('WARNING: JWT_SECRET is not set in environment variables!');
+                return res.status(500).json({ message: 'Server configuration error' });
+            }
+            
+            const decoded = jwt.verify(token, secret);
 
             // Check if user has required role
             if (!allowedRoles.includes(decoded.role)) {
@@ -79,7 +99,8 @@ const checkRole = (allowedRoles) => {
             req.user = decoded;
             next();
         } catch (err) {
-            res.status(401).json({ message: 'Token is not valid' });
+            console.error('Token verification error:', err.message);
+            res.status(401).json({ message: 'Token is not valid', error: err.message });
         }
     };
 };

@@ -8,7 +8,7 @@ router.post('/', adminOnly, logCrudOperation('create', 'payment'), async (req, r
     let { customerId, amount, paymentDate, createdBy, penalty } = req.body;
     createdBy = createdBy?.toUpperCase();
     let paidAmount = parseFloat(amount);
-    let newPenalty = parseFloat(penalty) || 0;
+    //let newPenalty = parseFloat(penalty) || 0;
 
     if (!customerId || isNaN(paidAmount) || !paymentDate) {
         return res.status(400).json({ message: 'Missing required fields: customerId, amount, paymentDate' });
@@ -19,9 +19,9 @@ router.post('/', adminOnly, logCrudOperation('create', 'payment'), async (req, r
         return res.status(400).json({ message: 'Payment amount must be greater than 0' });
     }
 
-    if (newPenalty < 0) {
-        return res.status(400).json({ message: 'Penalty cannot be negative' });
-    }
+    // if (newPenalty < 0) {
+    //     return res.status(400).json({ message: 'Penalty cannot be negative' });
+    // }
 
     const connection = await pool.getConnection();
 
@@ -58,23 +58,39 @@ router.post('/', adminOnly, logCrudOperation('create', 'payment'), async (req, r
         let remainingPaidAmount = paidAmount;
         let penaltyPaid = 0;
 
-        // 1. Penalty Handling: Deduct penalty first
-        if (newPenalty > 0) {
-            // New penalty is being charged
-            if (remainingPaidAmount >= newPenalty) {
-                remainingPaidAmount -= newPenalty;
-                console.log("remainingPaidAmount-3.2: "+remainingPaidAmount);
-                penaltyPaid = newPenalty;
-                console.log("penaltyPaid-3.3: "+penaltyPaid);
-                currentPenalty = 0; // Penalty cleared
-            } else {
-                 console.log("totalDueAmount-4: "+totalDueAmount);
-                // Paid amount is less than penalty, only penalty is reduced
-                currentPenalty = newPenalty - remainingPaidAmount;
-                penaltyPaid = remainingPaidAmount;
-                remainingPaidAmount = 0; // No amount left for principal
-            }
-        } else if (currentPenalty > 0) {
+        // // 1. Penalty Handling: Deduct penalty first
+        // if (newPenalty > 0) {
+        //     // New penalty is being charged
+        //     if (remainingPaidAmount >= newPenalty) {
+        //         remainingPaidAmount -= newPenalty;
+        //         console.log("remainingPaidAmount-3.2: "+remainingPaidAmount);
+        //         penaltyPaid = newPenalty;
+        //         console.log("penaltyPaid-3.3: "+penaltyPaid);
+        //         currentPenalty = 0; // Penalty cleared
+        //     } else {
+        //          console.log("totalDueAmount-4: "+totalDueAmount);
+        //         // Paid amount is less than penalty, only penalty is reduced
+        //         currentPenalty = newPenalty - remainingPaidAmount;
+        //         penaltyPaid = remainingPaidAmount;
+        //         remainingPaidAmount = 0; // No amount left for principal
+        //     }
+        // } else if (currentPenalty > 0) {
+        //      console.log("totalDueAmount-5: "+totalDueAmount);
+        //     // Pay existing penalty first
+        //     if (remainingPaidAmount >= currentPenalty) {
+        //         remainingPaidAmount -= currentPenalty;
+        //         penaltyPaid = currentPenalty;
+        //         currentPenalty = 0; // Penalty cleared
+        //     } else {
+        //          console.log("totalDueAmount-6: "+totalDueAmount);
+        //         // Paid amount is less than penalty, only penalty is reduced
+        //         currentPenalty -= remainingPaidAmount;
+        //         penaltyPaid = remainingPaidAmount;
+        //         remainingPaidAmount = 0; // No amount left for principal
+        //     }
+        // }
+
+        if (currentPenalty > 0) {
              console.log("totalDueAmount-5: "+totalDueAmount);
             // Pay existing penalty first
             if (remainingPaidAmount >= currentPenalty) {
@@ -95,16 +111,21 @@ router.post('/', adminOnly, logCrudOperation('create', 'payment'), async (req, r
              console.log("remainingPaidAmount-7: "+remainingPaidAmount);
         
             totalDueAmount = Math.max(0, totalDueAmount - remainingPaidAmount);
+
         }
 
         // 3. Due Count Handling: Each successful payment reduces total_due by 1
-        if (paidAmount > 0 && totalDuesCount > 0) {
-            totalDuesCount = Math.max(0, totalDuesCount - 1);
+        if (paidAmount > 0) {
+            if(totalDuesCount > 1){
+                 totalDuesCount = Math.max(0, totalDuesCount - 1);
+            }else{
+                totalDuesCount = 1;
+            }
         }
 
         // 4. Status Update Logic
         let newStatus;
-        if (totalDueAmount <= 0.5) {
+        if (totalDueAmount <= 0) {
             newStatus = 'C';
             totalDueAmount = 0;
             currentPenalty = 0;

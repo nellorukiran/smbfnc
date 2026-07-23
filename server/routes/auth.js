@@ -63,9 +63,15 @@ router.post('/login', async (req, res) => {
         }
 
         // Create token
+        const secret = process.env.JWT_SECRET;
+        if (!secret) {
+            console.error('ERROR: JWT_SECRET is not set in environment variables!');
+            return res.status(500).json({ message: 'Server configuration error: JWT_SECRET not configured' });
+        }
+        
         const token = jwt.sign(
             { id: user.user_id, role: user.roles, user_name: user.user_name },
-            process.env.JWT_SECRET || 'secret',
+            secret,
             { expiresIn: '1d' }
         );
 
@@ -96,7 +102,13 @@ router.get('/me', async (req, res) => {
     }
 
     try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+        const secret = process.env.JWT_SECRET;
+        if (!secret) {
+            console.error('ERROR: JWT_SECRET is not set in environment variables!');
+            return res.status(500).json({ message: 'Server configuration error: JWT_SECRET not configured' });
+        }
+        
+        const decoded = jwt.verify(token, secret);
 
         const [users] = await db.execute('SELECT * FROM smb_user WHERE user_id = ?', [decoded.id]);
 

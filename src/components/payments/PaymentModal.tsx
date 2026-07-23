@@ -77,6 +77,7 @@ const PaymentModal = ({ customer, isOpen, onClose, onSuccess }: PaymentModalProp
                 customerId: customer.customer_id,
                 amount: payAmount,
                 paymentDate: paymentDate,
+                totalDues: totalDues,
                 createdBy: 'ADMIN', // You might want to get this from AuthContext if available here or pass it in
                 penalty: penalty ? parseFloat(penalty) : 0
             };

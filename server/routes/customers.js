@@ -199,7 +199,7 @@ router.post('/', adminOnly, logCrudOperation('create', 'customer'), async (req, 
             product_model
         } = req.body;
         created_by = createdByInput?.toUpperCase();
-        const phoneNum = "+91-" + phone_number;
+        const phoneNum = phone_number;
         const dueAmt = parseFloat(due_amount) || 0;
         const nextDueAmt = parseFloat(next_due_amount) || 0;
         const totalDueAmt = parseFloat(total_due_amount) || 0;
@@ -269,7 +269,7 @@ router.put('/:id', adminOnly, logCrudOperation('update', 'customer'), async (req
         product_model
     } = req.body;
 
-     const phoneNum = "+91-" + phone_number;
+     const phoneNum = phone_number;
     const query = `
         UPDATE smb_customer_details SET
             customer_name   = COALESCE(?, customer_name),

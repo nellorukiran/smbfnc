@@ -185,6 +185,14 @@ const CustomerDetails = () => {
                 </span>
               </div>
               <div className="text-right">
+                <p className="text-sm text-muted-foreground">Paid Due</p>
+                <p className={`text-2xl font-bold ${remainingAmount > 0 ? 'text-warning' : 'text-success'}`}>
+                  {totalPaid > 0
+                    ? `${formatCurrency(totalPaid)}`
+                    : '0.0'}
+                </p>
+              </div>
+              <div className="text-right">
                 <p className="text-sm text-muted-foreground">Remaining Due</p>
                 <p className={`text-2xl font-bold ${remainingAmount > 0 ? 'text-warning' : 'text-success'}`}>
                   {remainingAmount > 0
@@ -210,13 +218,7 @@ const CustomerDetails = () => {
                 <Phone className="h-4 w-4 text-muted-foreground" />
                 <div>
                   <p className="text-sm text-muted-foreground">Phone Number</p>
-                  {customer.phone_number ? (
-                    <a href={`tel:${customer.phone_number}`} className="text-primary hover:underline font-medium">
-                      {customer.phone_number}
-                    </a>
-                  ) : (
-                    <p className="text-muted-foreground">-</p>
-                  )}
+                   <p className="font-medium">{customer.phone_number || '-'}</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
@@ -280,39 +282,36 @@ const CustomerDetails = () => {
           </CardHeader>
           <CardContent>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <div className="p-4 bg-muted/50 rounded-lg">
+              <div className="p-4 bg-primary/10 rounded-lg">
                 <p className="text-sm text-muted-foreground">Sale Price</p>
                 <p className="text-xl font-bold">{formatCurrency(Number(customer.sale_price))}</p>
               </div>
-              <div className="p-4 bg-muted/50 rounded-lg">
+              <div className="p-4 bg-primary/10 rounded-lg">
                 <p className="text-sm text-muted-foreground">Down Payment</p>
                 <p className="text-xl font-bold">{formatCurrency(Number(customer.advance))}</p>
               </div>
-              <div className="p-4 bg-muted/50 rounded-lg">
+              <div className="p-4 bg-primary/10 rounded-lg">
                 <p className="text-sm text-muted-foreground">Balance Payment</p>
-                <p className="text-xl font-bold text-success">{formatCurrency(Number(customer.due_amt))}</p>
+                <p className="text-xl font-bold">{formatCurrency(Number(customer.due_amt))}</p>
               </div>
-              <div className="p-4 bg-muted/50 rounded-lg">
+              <div className="p-4 bg-primary/10 rounded-lg">
                 <p className="text-sm text-muted-foreground">Interest Amount</p>
-                <p className="text-xl font-bold text-success">{formatCurrency(Number(customer.interest_amt))}</p>
+                <p className="text-xl font-bold">{formatCurrency(Number(customer.interest_amt))}</p>
               </div>
             </div>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mt-3">
               <div className="p-4 bg-primary/10 rounded-lg">
                 <p className="text-sm text-muted-foreground">No Of EMI's</p>
-                <p className="text-xl font-bold text-success">{formatCurrency(Number(customer.total_dues))}</p>
+                <p className="text-xl font-bold">{formatCurrency(Number(customer.total_dues))}</p>
+              </div>
+              
+              <div className="p-4 bg-primary/10 rounded-lg">
+                <p className="text-sm text-muted-foreground">Outstanding Amount</p>
+                <p className="text-xl font-bold text-warning">{formatCurrency(Number(customer.total_due_amount))}</p>
               </div>
               <div className="p-4 bg-primary/10 rounded-lg">
                 <p className="text-sm text-muted-foreground">Monthly EMI</p>
-                <p className="text-xl font-bold text-primary">{formatCurrency(Number(customer.per_month_due))}</p>
-              </div>
-              <div className="p-4 bg-success/10 rounded-lg">
-                <p className="text-sm text-muted-foreground">Total Paid</p>
-                <p className="text-xl font-bold text-success">{formatCurrency(totalPaid)}</p>
-              </div>
-              <div className="p-4 bg-warning/10 rounded-lg">
-                <p className="text-sm text-muted-foreground">Outstanding Amount</p>
-                <p className="text-xl font-bold text-warning">{formatCurrency(Number(customer.total_due_amount))}</p>
+                <p className="text-xl font-bold">{formatCurrency(Number(customer.per_month_due))}</p>
               </div>
             </div>
           </CardContent>
